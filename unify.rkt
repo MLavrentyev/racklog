@@ -53,7 +53,7 @@
       (for/fold ([new-ht new-ht])
         ([(k v) (in-hash ht)])
         (hash-set new-ht k (f v)))
-      (begin 
+      (begin
         (for ([(k v) (in-hash ht)])
           (hash-set! new-ht k (f v)))
         new-ht)))
@@ -71,7 +71,7 @@
 (define (compound-struct-map f s)
   (define-values (stype _) (struct-info s))
   (define make (struct-type-make-constructor stype))
-  (apply make 
+  (apply make
          (for/list ([e (in-compound-struct s)])
            (f e))))
 (define (compound-struct-ormap f s)
@@ -172,7 +172,7 @@
          [else else-expr ...]))]))
 
 (define (logic-var-val* v)
-  (uni-match 
+  (uni-match
    v
    [(? logic-var? s)
     (cond [(unbound-logic-var? s) '_]
@@ -195,7 +195,7 @@
   (and (use-occurs-check?)
        (let loop ([term term])
          (or (eqv? var term)
-             (uni-match 
+             (uni-match
               term
               [(? logic-var? term)
                (cond [(unbound-logic-var? term) #f]
@@ -214,7 +214,7 @@
               [(? atom? x) #f])))))
 
 (define (constant? x)
-  (uni-match 
+  (uni-match
    x
    [(? logic-var? x)
     (cond [(unbound-logic-var? x) #f]
@@ -229,7 +229,7 @@
    [(? atom? x) #t]))
 
 (define (is-compound? x)
-  (uni-match 
+  (uni-match
    x
    [(? logic-var? x)
     (cond [(unbound-logic-var? x) #f]
@@ -244,7 +244,7 @@
    [(? atom? x) #f]))
 
 (define (var? x)
-  (uni-match 
+  (uni-match
    x
    [(? logic-var? x)
     (cond [(unbound-logic-var? x) #t]
@@ -263,7 +263,7 @@
 (define (freeze v)
   (define dict (make-hasheq))
   (define (loop s)
-    (uni-match 
+    (uni-match
      s
      [(? logic-var? s)
       (if (or (unbound-logic-var? s) (frozen-logic-var? s))
@@ -285,7 +285,7 @@
   (loop v))
 
 (define (melt f)
-  (uni-match 
+  (uni-match
    f
    [(? logic-var? f)
     (cond [(unbound-logic-var? f) f]
@@ -306,7 +306,7 @@
 (define (melt-new f)
   (define dict (make-hasheq))
   (define (loop s)
-    (uni-match 
+    (uni-match
      s
      [(? logic-var? f)
       (cond [(unbound-logic-var? f) f]
@@ -333,9 +333,9 @@
       (melt-new f))))
 
 (define (ident? x y)
-  (uni-match 
+  (uni-match
    x
-   [(? logic-var? x) 
+   [(? logic-var? x)
     (cond [(unbound-logic-var? x)
            (cond [(logic-var? y)
                   (cond [(unbound-logic-var? y) (eq? x y)]
@@ -350,13 +350,13 @@
                  [else #f])]
           [else (ident? (logic-var-val x) y)])]
    [(cons xl xr)
-    (uni-match 
+    (uni-match
      y
      [(? logic-var? y)
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(cons yl yr) 
+     [(cons yl yr)
       (and (ident? xl yl) (ident? xr yr))]
      [(mcons yl yr) #f]
      [(box v) #f]
@@ -365,14 +365,14 @@
      [(? compound-struct? y) #f]
      [(? atom? y) #f])]
    [(mcons xl xr)
-    (uni-match 
+    (uni-match
      y
      [(? logic-var? y)
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
      [(cons yl yr) #f]
-     [(mcons yl yr) 
+     [(mcons yl yr)
       (and (ident? xl yl) (ident? xr yr))]
      [(box v) #f]
      [(? vector? y) #f]
@@ -380,7 +380,7 @@
      [(? compound-struct? y) #f]
      [(? atom? y) #f])]
    [(box xv)
-    (uni-match 
+    (uni-match
      y
      [(? logic-var? y)
       (cond [(unbound-logic-var? y) #f]
@@ -394,7 +394,7 @@
      [(? compound-struct? y) #f]
      [(? atom? y) #f])]
    [(? vector? x)
-    (uni-match 
+    (uni-match
      y
      [(? logic-var? y)
       (cond [(unbound-logic-var? y) #f]
@@ -414,7 +414,7 @@
      [(? compound-struct? y) #f]
      [(? atom? y) #f])]
    [(? hash? x)
-    (uni-match 
+    (uni-match
      y
      [(? logic-var? y)
       (cond [(unbound-logic-var? y) #f]
@@ -434,7 +434,7 @@
      [(? compound-struct? y) #f]
      [(? atom? y) #f])]
    [(? compound-struct? x)
-    (uni-match 
+    (uni-match
      y
      [(? logic-var? y)
       (cond [(unbound-logic-var? y) #f]
@@ -445,11 +445,11 @@
      [(box v) #f]
      [(? vector? y) #f]
      [(? hash? y) #f]
-     [(? compound-struct? y) 
+     [(? compound-struct? y)
       (compound-struct-cmp x y ident?)]
      [(? atom? y) #f])]
    [(? atom? x)
-    (uni-match 
+    (uni-match
      y
      [(? logic-var? y)
       (cond [(unbound-logic-var? y) #f]
@@ -486,7 +486,7 @@
                                  [else
                                   (unify1 t1 (logic-var-val t2) next)])]
                           [else (fk-record)])]
-                   [else 
+                   [else
                     (unify1 (logic-var-val t1) t2 next)])]
             [(logic-var? t2) (unify1 t2 t1 next)]
             [(and (pair? t1) (pair? t2))
@@ -560,7 +560,7 @@
   (or* x pair? vector? mpair? box? hash? compound-struct?))
 
 (define (answer-value? x)
-  (uni-match 
+  (uni-match
    x
    [(? logic-var? x) #f]
    [(cons l r) (and (answer-value? l) (answer-value? r))]
@@ -577,7 +577,7 @@
     [(list (cons (? symbol?) (? answer-value?)) ...) #t]
     [_ #f]))
 (define (unifiable? x)
-  (uni-match 
+  (uni-match
    x
    [(? logic-var? x) #t]
    [(cons l r) (and (unifiable? l) (unifiable? r))]

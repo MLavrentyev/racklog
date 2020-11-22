@@ -122,7 +122,7 @@
 (define-syntax (%is stx)
   (syntax-case stx ()
     [(%is v e)
-     (with-syntax ([fe (syntax-disarm 
+     (with-syntax ([fe (syntax-disarm
                         (local-expand #'e 'expression empty)
                         orig-insp)])
        (syntax/loc stx
@@ -137,7 +137,7 @@
      (syntax/loc stx (case-lambda [fmls (%is/fk e fk) ...] ...))]
     [(_ (if e1 e2 e3) fk)
      (syntax/loc stx (if (%is/fk e1 fk)
-                         (%is/fk e2 fk) 
+                         (%is/fk e2 fk)
                          (%is/fk e3 fk)))]
     [(_ (begin e ...) fk)
      (syntax/loc stx (begin (%is/fk e fk) ...))]
@@ -146,12 +146,12 @@
     [(_ (let-values ([(v ...) ve] ...)
           be ...) fk)
      (syntax/loc stx
-       (let-values ([(v ...) (%is/fk ve fk)] ...) 
+       (let-values ([(v ...) (%is/fk ve fk)] ...)
          (%is/fk be fk) ...))]
     [(_ (letrec-values ([(v ...) ve] ...)
           be ...) fk)
      (syntax/loc stx
-       (letrec-values ([(v ...) (%is/fk ve fk)] ...) 
+       (letrec-values ([(v ...) (%is/fk ve fk)] ...)
          (%is/fk be fk) ...))]
     [(_ (set! i e) fk)
      (syntax/loc stx (set! i (%is/fk e fk)))]
@@ -162,7 +162,7 @@
     [(_ (with-continuation-mark e1 e2 e3) fk)
      (syntax/loc stx (with-continuation-mark
                          (%is/fk e1 fk)
-                       (%is/fk e2 fk) 
+                       (%is/fk e2 fk)
                        (%is/fk e3 fk)))]
     [(_ (#%plain-app e ...) fk)
      (syntax/loc stx (#%plain-app (%is/fk e fk) ...))]
@@ -170,7 +170,7 @@
      (syntax/loc stx
        (if (and (logic-var? x) (unbound-logic-var? x))
            (fk) (logic-var-val* x)))]
-    
+
     ))
 
 (define ((make-binary-arithmetic-relation f) x y)
@@ -197,7 +197,7 @@
 (define (((%nonvar x) sk) fk)
   (if (var? x) (fk) (sk fk)))
 
-(define ((make-negation p) . args) 
+(define ((make-negation p) . args)
   ;basically inlined cut-fail
   (lambda (sk)
     (lambda (fk)
@@ -259,7 +259,7 @@
   (syntax-rules ()
     ((%free-vars (v ...) g)
      (make-goal-with-free-vars
-      (list v ...) 
+      (list v ...)
       g))))
 
 (define ((make-bag-of kons) lv goal bag)
@@ -383,7 +383,7 @@
 
 (define fk? (-> none/c))
 (define sk? (fk? . -> . none/c))
-(define goal/c 
+(define goal/c
   (or/c goal-with-free-vars?
         (sk? . -> . (fk? . -> . none/c))))
 (define relation/c
