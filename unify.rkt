@@ -475,23 +475,18 @@
                     (cond [(occurs-in? t1 t2)
                            (fk-record)]
                           [else
-                           (printf "unifying (unbound t1)\n")
                            (let/logic-var ([t1 t2]) ; TODO: this is where magic happens
                              (next))])]
                    [(frozen-logic-var? t1)
                     (cond [(logic-var? t2)
                            (cond [(unbound-logic-var? t2)
-                                  (printf "unifying (frozen t1, unbound t2)\n")
                                   (unify1 t2 t1 next)]
                                  [(frozen-logic-var? t2)
-                                  (printf "unifying (frozen t1, frozen t2)\n")
                                   (fk-record)]
                                  [else
-                                  (printf "unifying (frozen t1, value t2)\n")
                                   (unify1 t1 (logic-var-val t2) next)])]
-                          [else (printf "unifying (frozen t1, val t2)") (fk-record)])]
+                          [else (fk-record)])]
                    [else 
-                    (printf "unifying (val t1)")
                     (unify1 (logic-var-val t1) t2 next)])]
             [(logic-var? t2) (unify1 t2 t1 next)]
             [(and (pair? t1) (pair? t2))
