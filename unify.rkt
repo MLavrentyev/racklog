@@ -9,6 +9,21 @@
          "control.rkt")
 (provide (all-defined-out))
 
+; struct for recording provenance
+(struct choice-point (parent [children #:mutable] key value))
+(define top-choice-point (choice-point #f empty #f #f))
+(define curr-choice-point top-choice-point)
+(define (reset-choice-points)
+  (set! top-choice-point (choice-point #f empty #f #f))
+  (set! curr-choice-point top-choice-point))
+(define (add-sub-choice-point curr-chp key value)
+  (let ([sub-chp (choice-point curr-chp '() key value)])
+       (set-choice-point-children! curr-chp (cons sub-chp (choice-point-children curr-chp)))))
+(define (move-up-tree)
+  (let ([parent (choice-point-parent curr-choice-point)])
+    (when parent (set! curr-choice-point parent))
+    parent))
+
 ; same hash
 (define (make-immutable-hash*) (make-immutable-hash empty))
 (define (make-immutable-hasheqv*) (make-immutable-hasheqv empty))
@@ -96,7 +111,9 @@
   (continuation-mark-set-first #f r *unbound* racklog-prompt-tag))
 
 (define-syntax-rule (let/logic-var ([r v]) e ...)
-  (with-continuation-mark r v (begin e ...)))
+  (begin
+    (add-sub-choice-point curr-choice-point r v)
+    (with-continuation-mark r v (begin e ...))))
 
 (define _ make-logic-var)
 (define (unbound-logic-var? r)
@@ -448,25 +465,33 @@
 
 (define ((unify t1 t2) sk)
   (lambda (fk)
+    (define (fk-record)
+      (move-up-tree)
+      (fk))
     (define (unify1 t1 t2 next)
       (cond [(eqv? t1 t2) (next)]
             [(logic-var? t1)
              (cond [(unbound-logic-var? t1)
                     (cond [(occurs-in? t1 t2)
-                           (fk)]
+                           (fk-record)]
                           [else
-                           (let/logic-var ([t1 t2])
+                           (printf "unifying (unbound t1)\n")
+                           (let/logic-var ([t1 t2]) ; TODO: this is where magic happens
                              (next))])]
                    [(frozen-logic-var? t1)
                     (cond [(logic-var? t2)
                            (cond [(unbound-logic-var? t2)
+                                  (printf "unifying (frozen t1, unbound t2)\n")
                                   (unify1 t2 t1 next)]
                                  [(frozen-logic-var? t2)
-                                  (fk)]
+                                  (printf "unifying (frozen t1, frozen t2)\n")
+                                  (fk-record)]
                                  [else
+                                  (printf "unifying (frozen t1, value t2)\n")
                                   (unify1 t1 (logic-var-val t2) next)])]
-                          [else (fk)])]
+                          [else (printf "unifying (frozen t1, val t2)") (fk-record)])]
                    [else 
+                    (printf "unifying (val t1)")
                     (unify1 (logic-var-val t1) t2 next)])]
             [(logic-var? t2) (unify1 t2 t1 next)]
             [(and (pair? t1) (pair? t2))
@@ -488,7 +513,7 @@
                                (stream-first v2s)
                                (λ () (loop (stream-rest v1s)
                                            (stream-rest v2s))))))
-                 (fk))]
+                 (fk-record))]
             [(and (hash? t1) (hash? t2))
              (if (and (same-hash-kind? t1 t2)
                       (= (hash-count t1) (hash-count t2)))
@@ -500,8 +525,8 @@
                              (unify1 xv
                                      (hash-ref t2 xk)
                                      (λ () (loop (stream-rest xs))))
-                             (fk)))))
-                 (fk))]
+                             (fk-record)))))
+                 (fk-record))]
             [(and (compound-struct? t1) (compound-struct? t2))
              (if (compound-struct-same? t1 t2)
                  (let loop ([e1s (sequence->stream (in-compound-struct t1))]
@@ -512,12 +537,12 @@
                                (stream-first e2s)
                                (λ () (loop (stream-rest e1s)
                                            (stream-rest e2s))))))
-                 (fk))]
+                 (fk-record))]
             [(and (atom? t1) (atom? t2))
-             (if (equal? t1 t2) (next) (fk))]
+             (if (equal? t1 t2) (next) (fk-record))]
             [else
-             (fk)]))
-    (unify1 t1 t2 (λ () (sk fk)))))
+             (fk-record)]))
+    (unify1 t1 t2 (λ () (sk fk-record)))))
 
 (define-syntax-rule (or* x f ...)
   (or (f x) ...))
