@@ -323,10 +323,8 @@
          (let ([var-mapping (list (cons 'v (logic-var-val* v)) ...)])
           (((logic-var-val* g)
             (lambda (fk)
-              ; check that we made it back to the top of the recording and print it out
-              (if (choice-point-parent curr-choice-point)
-                  (error 'violated-invariant "Provenance recording didn't return to top node")
-                  (print-provenance curr-choice-point "" var-mapping))
+              (printf "--------------------------\n")
+              (print-provenance top-choice-point "" var-mapping)
               (printf "--------------------------\n")
               (set-box! *more-fk* fk)
               (abort-to-racklog-prompt (list (cons 'v (logic-var-val* v)) ...))))
