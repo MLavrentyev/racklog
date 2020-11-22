@@ -1,4 +1,5 @@
 # Racket compiled files
+doc/
 compiled/
 
 # common backups, autosaves, lock files, OS meta-files
