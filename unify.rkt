@@ -10,27 +10,37 @@
 (provide (all-defined-out))
 
 ; struct for recording provenance
-(struct choice-point (parent [children #:mutable] key value))
-(define top-choice-point (choice-point #f empty #f #f))
+(struct choice-point (parent [children #:mutable] key value [success #:mutable]))
+(define top-choice-point (choice-point #f empty #f #f 'unset))
 (define curr-choice-point top-choice-point)
 (define (reset-choice-points)
-  (set! top-choice-point (choice-point #f empty #f #f))
+  (set! top-choice-point (choice-point #f empty #f #f 'unset))
   (set! curr-choice-point top-choice-point))
 (define (add-sub-choice-point curr-chp sub-chp)
   (set-choice-point-children! curr-chp (cons sub-chp (choice-point-children curr-chp))))
-(define (move-up-tree)
+(define (move-up-tree success)
   (let ([parent (choice-point-parent curr-choice-point)])
+    (if (equal? (choice-point-success curr-choice-point) 'unset)
+        (set-choice-point-success!
+          curr-choice-point
+          success)
+        (set-choice-point-success!
+          curr-choice-point
+          (or success (choice-point-success curr-choice-point))))
     (when parent (set! curr-choice-point parent))
     parent))
 (define (get-logic-var-name lvar)
   (if lvar
-      (logic-var-var-name lvar)
+      (if (logic-var? lvar)
+          (logic-var-var-name lvar)
+          lvar)
       'top))
 (define (print-provenance choice-node indent var-mapping)
-  (printf "~a(~a: ~a)\n"
+  (printf "~a(~a: ~a): ~a\n"
           indent
           (get-logic-var-name (choice-point-key choice-node))
-          (choice-point-value choice-node))
+          (get-logic-var-name (choice-point-value choice-node))
+          (choice-point-success choice-node))
   (map (λ (child) (print-provenance child (string-append "  " indent) var-mapping))
        (choice-point-children choice-node)))
 
@@ -122,7 +132,7 @@
 
 (define-syntax-rule (let/logic-var ([r v]) e ...)
   (begin
-    (let ([sub-chp (choice-point curr-choice-point '() r v)])
+    (let ([sub-chp (choice-point curr-choice-point '() r v 'unset)])
       (add-sub-choice-point curr-choice-point sub-chp)
       (set! curr-choice-point sub-chp))
     (with-continuation-mark r v (begin e ...))))
@@ -478,7 +488,7 @@
 (define ((unify t1 t2) sk)
   (lambda (fk)
     (define (fk-record)
-      (move-up-tree)
+      (move-up-tree #f)
       (fk))
     (define (unify1 t1 t2 next)
       (cond [(eqv? t1 t2) (next)]
@@ -549,7 +559,7 @@
              (if (equal? t1 t2) (next) (fk-record))]
             [else
              (fk-record)]))
-    (unify1 t1 t2 (λ () (move-up-tree) (sk fk-record)))))
+    (unify1 t1 t2 (λ () (move-up-tree #t) (sk fk-record)))))
 
 (define-syntax-rule (or* x f ...)
   (or (f x) ...))
