@@ -17,9 +17,18 @@
   (set! top-choice-point (choice-point #f empty #f #f 'unset))
   (set! curr-choice-point top-choice-point))
 (define (add-sub-choice-point curr-chp sub-chp)
+  #;(printf "moving down: <~a:~a> -> <~a:~a>\n"
+         (if (choice-point-key curr-chp) (logic-var-var-name (choice-point-key curr-chp)) 'top)
+         (if (logic-var? (choice-point-value curr-chp)) (if (choice-point-value curr-chp) (logic-var-var-name (choice-point-value curr-chp)) 'top) 'value)
+         (if (choice-point-key sub-chp) (logic-var-var-name (choice-point-key sub-chp)) 'top)
+         (if (logic-var? (choice-point-value sub-chp)) (if (choice-point-value sub-chp) (logic-var-var-name (choice-point-value sub-chp)) 'top) 'value))
   (set-choice-point-children! curr-chp (cons sub-chp (choice-point-children curr-chp))))
 (define (move-up-tree success)
   (let ([parent (choice-point-parent curr-choice-point)])
+    #;(printf "moving up <~a>: ~a -> ~a\n"
+            success
+            (if (choice-point-key curr-choice-point) (logic-var-var-name (choice-point-key curr-choice-point)) 'top)
+            (if (choice-point-key parent) (logic-var-var-name (choice-point-key parent)) 'top))
     (if (equal? (choice-point-success curr-choice-point) 'unset)
         (set-choice-point-success!
           curr-choice-point
