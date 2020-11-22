@@ -315,7 +315,7 @@
 
 (define-syntax %which
   (syntax-rules ()
-    ((%which (v ...) g)
+    [(%which (v ...) g)
      (with-racklog-prompt
        (%let (v ...)
          (((logic-var-val* g)
@@ -326,7 +326,7 @@
                     ...))))
           (lambda ()
             (set-box! *more-fk* #f)
-            (abort-to-racklog-prompt #f))))))
+            (abort-to-racklog-prompt #f)))))]
     [(%which (v ...) g ...)
      (%which (v ...) (%and g ...))]))
 
