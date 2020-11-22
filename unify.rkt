@@ -16,9 +16,8 @@
 (define (reset-choice-points)
   (set! top-choice-point (choice-point #f empty #f #f))
   (set! curr-choice-point top-choice-point))
-(define (add-sub-choice-point curr-chp key value)
-  (let ([sub-chp (choice-point curr-chp '() key value)])
-       (set-choice-point-children! curr-chp (cons sub-chp (choice-point-children curr-chp)))))
+(define (add-sub-choice-point curr-chp sub-chp)
+  (set-choice-point-children! curr-chp (cons sub-chp (choice-point-children curr-chp))))
 (define (move-up-tree)
   (let ([parent (choice-point-parent curr-choice-point)])
     (when parent (set! curr-choice-point parent))
@@ -123,7 +122,9 @@
 
 (define-syntax-rule (let/logic-var ([r v]) e ...)
   (begin
-    (add-sub-choice-point curr-choice-point r v)
+    (let ([sub-chp (choice-point curr-choice-point '() r v)])
+      (add-sub-choice-point curr-choice-point sub-chp)
+      (set! curr-choice-point sub-chp))
     (with-continuation-mark r v (begin e ...))))
 
 (define _ make-logic-var)
