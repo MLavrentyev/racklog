@@ -499,6 +499,9 @@
     (define (fk-record)
       (move-up-tree #f)
       (fk))
+    (define (sk-record inner-fk)
+      (move-up-tree #t)
+      (sk inner-fk))
     (define (unify1 t1 t2 next)
       (cond [(eqv? t1 t2) (next)]
             [(logic-var? t1)
@@ -568,7 +571,7 @@
              (if (equal? t1 t2) (next) (fk-record))]
             [else
              (fk-record)]))
-    (unify1 t1 t2 (λ () (move-up-tree #t) (sk fk-record)))))
+    (unify1 t1 t2 (λ () (sk fk-record)))))
 
 (define-syntax-rule (or* x f ...)
   (or (f x) ...))
