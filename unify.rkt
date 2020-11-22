@@ -51,7 +51,7 @@
           (get-logic-var-name (choice-point-value choice-node))
           (choice-point-success choice-node))
   (map (λ (child) (print-provenance child (string-append "  " indent) var-mapping))
-       (choice-point-children choice-node)))
+       (reverse (choice-point-children choice-node))))
 
 ; same hash
 (define (make-immutable-hash*) (make-immutable-hash empty))
