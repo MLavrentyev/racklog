@@ -549,7 +549,7 @@
              (if (equal? t1 t2) (next) (fk-record))]
             [else
              (fk-record)]))
-    (unify1 t1 t2 (λ () (sk fk-record)))))
+    (unify1 t1 t2 (λ () (move-up-tree) (sk fk-record)))))
 
 (define-syntax-rule (or* x f ...)
   (or (f x) ...))
