@@ -92,7 +92,7 @@
          (= ex ey))))
 
 (define-struct logic-var
-  ()
+  (var-name)
   #:property prop:procedure
   (lambda (v . args)
     ; Coerce (v arg ...) to a goal, equivalent to %fail if v is not a procedure of the correct arity
@@ -311,7 +311,7 @@
      [(? logic-var? f)
       (cond [(unbound-logic-var? f) f]
             [(frozen-logic-var? f)
-             (hash-ref! dict f _)]
+             (hash-ref! dict f (_ (gensym)))]
             [else (loop (logic-var-val f))])]
      [(cons l r)
       (cons (loop l) (loop r))]
@@ -328,7 +328,7 @@
   (loop f))
 
 (define (copy s)
-  (let ([f (_)])
+  (let ([f (_ (gensym))])
     (let/logic-var ([f (freeze s)])
       (melt-new f))))
 

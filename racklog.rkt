@@ -14,7 +14,7 @@
 (define-syntax %let
   (syntax-rules ()
     ((%let (x ...) . e)
-     (let ((x (_)) ...)
+     (let ((x (_ 'x)) ...)
        . e))))
 
 (define %= unify)
@@ -436,4 +436,4 @@
  [%set-of-1 (unifiable? goal/c unifiable? . -> . goal/c)]
  [%true goal/c]
  [%var (unifiable? . -> . goal/c)]
- [_ (-> logic-var?)]) 
+ [_ (symbol? . -> . logic-var?)])
