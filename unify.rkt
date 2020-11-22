@@ -23,6 +23,17 @@
   (let ([parent (choice-point-parent curr-choice-point)])
     (when parent (set! curr-choice-point parent))
     parent))
+(define (get-logic-var-name lvar)
+  (if lvar
+      (logic-var-var-name lvar)
+      'top))
+(define (print-provenance choice-node indent var-mapping)
+  (printf "(~a: ~a)\n"
+          (get-logic-var-name (choice-point-key choice-node))
+          ; (get-logic-var-name (choice-point-key choice-node) var-mapping)
+          (choice-point-value choice-node))
+  (map (λ (child) (print-provenance child (string-append "  " indent) var-mapping))
+       (choice-point-children choice-node)))
 
 ; same hash
 (define (make-immutable-hash*) (make-immutable-hash empty))
