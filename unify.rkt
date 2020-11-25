@@ -23,21 +23,9 @@
          (if (choice-point-key sub-chp) (logic-var-var-name (choice-point-key sub-chp)) 'top)
          (if (logic-var? (choice-point-value sub-chp)) (if (choice-point-value sub-chp) (logic-var-var-name (choice-point-value sub-chp)) 'top) 'value))
   (set-choice-point-children! curr-chp (cons sub-chp (choice-point-children curr-chp))))
-(define (move-up-tree success)
-  (let ([parent (choice-point-parent curr-choice-point)])
-    #;(printf "moving up <~a>: ~a -> ~a\n"
-            success
-            (if (choice-point-key curr-choice-point) (logic-var-var-name (choice-point-key curr-choice-point)) 'top)
-            (if (choice-point-key parent) (logic-var-var-name (choice-point-key parent)) 'top))
-    (if (equal? (choice-point-success curr-choice-point) 'unset)
-        (set-choice-point-success!
-          curr-choice-point
-          success)
-        (set-choice-point-success!
-          curr-choice-point
-          (or success (choice-point-success curr-choice-point))))
-    (when parent (set! curr-choice-point parent))
-    parent))
+(define (set-curr-choice-point new-chp)
+  (set! curr-choice-point new-chp)
+  new-chp)
 (define (get-logic-var-name lvar)
   (if lvar
       (if (logic-var? lvar)
@@ -45,12 +33,12 @@
           lvar)
       'top))
 (define (print-provenance choice-node indent var-mapping)
-  (printf "~a(~a: ~a): ~a\n"
+  (printf "~a(~a: ~a)\n"
           indent
           (get-logic-var-name (choice-point-key choice-node))
-          (get-logic-var-name (choice-point-value choice-node))
-          (choice-point-success choice-node))
-  (map (λ (child) (print-provenance child (string-append "  " indent) var-mapping))
+          (get-logic-var-name (choice-point-value choice-node)))
+          ;(choice-point-success choice-node))
+  (map (λ (child) (print-provenance child (string-append "| " indent) var-mapping))
        (reverse (choice-point-children choice-node))))
 
 ; same hash
@@ -496,30 +484,24 @@
 
 (define ((unify t1 t2) sk)
   (lambda (fk)
-    (define (fk-record)
-      (move-up-tree #f)
-      (fk))
-    (define (sk-record inner-fk)
-      (move-up-tree #t)
-      (sk inner-fk))
     (define (unify1 t1 t2 next)
       (cond [(eqv? t1 t2) (next)]
             [(logic-var? t1)
              (cond [(unbound-logic-var? t1)
                     (cond [(occurs-in? t1 t2)
-                           (fk-record)]
+                           (fk)]
                           [else
-                           (let/logic-var ([t1 t2]) ; TODO: this is where magic happens
+                           (let/logic-var ([t1 t2]) ; TODO: where the magic
                              (next))])]
                    [(frozen-logic-var? t1)
                     (cond [(logic-var? t2)
                            (cond [(unbound-logic-var? t2)
                                   (unify1 t2 t1 next)]
                                  [(frozen-logic-var? t2)
-                                  (fk-record)]
+                                  (fk)]
                                  [else
                                   (unify1 t1 (logic-var-val t2) next)])]
-                          [else (fk-record)])]
+                          [else (fk)])]
                    [else
                     (unify1 (logic-var-val t1) t2 next)])]
             [(logic-var? t2) (unify1 t2 t1 next)]
@@ -542,7 +524,7 @@
                                (stream-first v2s)
                                (λ () (loop (stream-rest v1s)
                                            (stream-rest v2s))))))
-                 (fk-record))]
+                 (fk))]
             [(and (hash? t1) (hash? t2))
              (if (and (same-hash-kind? t1 t2)
                       (= (hash-count t1) (hash-count t2)))
@@ -554,8 +536,8 @@
                              (unify1 xv
                                      (hash-ref t2 xk)
                                      (λ () (loop (stream-rest xs))))
-                             (fk-record)))))
-                 (fk-record))]
+                             (fk)))))
+                 (fk))]
             [(and (compound-struct? t1) (compound-struct? t2))
              (if (compound-struct-same? t1 t2)
                  (let loop ([e1s (sequence->stream (in-compound-struct t1))]
@@ -566,12 +548,11 @@
                                (stream-first e2s)
                                (λ () (loop (stream-rest e1s)
                                            (stream-rest e2s))))))
-                 (fk-record))]
+                 (fk))]
             [(and (atom? t1) (atom? t2))
-             (if (equal? t1 t2) (next) (fk-record))]
-            [else
-             (fk-record)]))
-    (unify1 t1 t2 (λ () (sk fk-record)))))
+             (if (equal? t1 t2) (next) (fk))]
+            [else (fk)]))
+    (unify1 t1 t2 (λ () (sk fk)))))
 
 (define-syntax-rule (or* x f ...)
   (or (f x) ...))
