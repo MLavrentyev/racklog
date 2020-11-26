@@ -56,6 +56,11 @@
   (%rel (b x f)
     ((b x) (%male b) (%father-of f b) (%father-of f x) (%/= b x))))
 
-(define %no-children
+(define %married-no-children
   (%rel (w h c)
     ((w) (%husband-of h w) (%not (%father-of h c)))))
+
+(define %no-children
+  (%rel (w h c)
+    ((w) (%married-no-children w))
+    ((w) (%female w) (%not (%married-to w h)))))
