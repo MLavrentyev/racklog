@@ -323,14 +323,13 @@
          (let ([var-mapping (list (cons 'v (logic-var-val* v)) ...)])
           (((logic-var-val* g)
             (lambda (fk)
-              (printf "--------------------------\n")
-              (print-provenance top-choice-point "" var-mapping)
-              (printf "--------------------------\n")
+              (print-provenance var-mapping)
               (set-box! *more-fk* fk)
               (abort-to-racklog-prompt (list (cons 'v (logic-var-val* v)) ...))))
-            (lambda ()
-              (set-box! *more-fk* #f)
-              (abort-to-racklog-prompt #f))))))]
+           (lambda ()
+             (print-provenance var-mapping)
+             (set-box! *more-fk* #f)
+             (abort-to-racklog-prompt #f))))))]
     [(%which (v ...) g ...)
      (%which (v ...) (%and g ...))]))
 

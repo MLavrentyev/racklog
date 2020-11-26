@@ -32,14 +32,18 @@
           (logic-var-var-name lvar)
           lvar)
       'top))
-(define (print-provenance choice-node indent var-mapping)
+(define (print-provenance-from-node choice-node indent var-mapping)
   (printf "~a(~a: ~a)\n"
           indent
           (get-logic-var-name (choice-point-key choice-node))
           (get-logic-var-name (choice-point-value choice-node)))
           ;(choice-point-success choice-node))
-  (map (λ (child) (print-provenance child (string-append "| " indent) var-mapping))
+  (map (λ (child) (print-provenance-from-node child (string-append "| " indent) var-mapping))
        (reverse (choice-point-children choice-node))))
+(define (print-provenance var-mapping)
+  (printf "--------------------------\n")
+  (print-provenance-from-node top-choice-point "" var-mapping)
+  (printf "--------------------------\n"))
 
 ; same hash
 (define (make-immutable-hash*) (make-immutable-hash empty))
