@@ -357,6 +357,7 @@
   (call-with-continuation-prompt (λ () e ...) racklog-prompt-tag))
 (define-syntax-rule (let/racklog-cc k e ...)
   (let ([backtrack-to-chp curr-choice-point])
+    (set-choice-point-fail-return-point! backtrack-to-chp #t)
     (call-with-current-continuation
       (λ (k) (let ([k (λ () (set-curr-choice-point backtrack-to-chp) (k))]) e ...))
       racklog-prompt-tag)))

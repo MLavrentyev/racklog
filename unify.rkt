@@ -10,7 +10,13 @@
 (provide (all-defined-out))
 
 ; struct for recording provenance
-(struct choice-point (parent [children #:mutable] key value [success #:mutable]))
+(struct choice-point
+        (parent
+         [children #:mutable]
+         key value
+         [success #:mutable]
+         [fail-return-point #:mutable #:auto])
+        #:auto-value #f)
 (define top-choice-point (choice-point #f empty #f #f 'unset))
 (define curr-choice-point top-choice-point)
 (define (reset-choice-points)
@@ -33,10 +39,13 @@
           lvar)
       'top))
 (define (print-provenance-from-node choice-node indent var-mapping)
-  (printf "~a(~a: ~a)\n"
+  (printf "~a(~a: ~a)~a\n"
           indent
           (get-logic-var-name (choice-point-key choice-node))
-          (get-logic-var-name (choice-point-value choice-node)))
+          (get-logic-var-name (choice-point-value choice-node))
+          (if (choice-point-fail-return-point choice-node)
+              " #<fail-return-point>"
+              ""))
           ;(choice-point-success choice-node))
   (map (λ (child) (print-provenance-from-node child (string-append "| " indent) var-mapping))
        (reverse (choice-point-children choice-node))))
