@@ -69,7 +69,13 @@
 
 ; example with unification order =/= order of introduction
 
+
 ; example with negated recursion
+(define %person
+  (%rel (p)
+    ((p) (%male p))
+    ((p) (%female p))))
+
 (define %descendant-of
   (%rel (d a i)
     ((d a) (%child-of d a))
@@ -77,4 +83,4 @@
 
 (define %not-descendant-of
   (%rel (nd na)
-    ((nd na) (%not (%descendant-of nd na)))))
+    ((nd na) (%person nd) (%not (%descendant-of nd na)))))
