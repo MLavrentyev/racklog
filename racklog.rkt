@@ -24,7 +24,7 @@
     ((%or g ...)
      (lambda (__sk)
        (lambda (__fk)
-         (let/racklog-fk __fk
+         (let/racklog-fk __fk '%or
            (((logic-var-val* g) __sk) __fk))
          ...
          (__fk))))))
@@ -60,10 +60,10 @@
   (lambda (sk)
     (lambda (fk)
       ; Base case (all lists empty)
-      (let/racklog-fk fk
+      (let/racklog-fk fk '%and-map
         ((foldr (lambda (lst sk) ((%= lst '()) sk)) sk lsts) fk))
       ; Call and recur
-      (let/racklog-fk fk
+      (let/racklog-fk fk '%and-map
         (let ([heads (map (lambda (lst) (_)) lsts)]
               [tails (map (lambda (lst) (_)) lsts)])
           (let* ([sk ((apply %andmap pred tails) sk)]
@@ -94,7 +94,7 @@
       (lambda (__sk)
         (lambda (__fk)
           (for ([clause (in-list (relation-clauses rel))])
-            (let/racklog-fk fail-clause
+            (let/racklog-fk fail-clause '%rel
               (((clause __fmls !) __sk) fail-clause)))
           (__fk))))))
 
@@ -355,14 +355,14 @@
   (abort-current-continuation racklog-prompt-tag (λ () a)))
 (define-syntax-rule (with-racklog-prompt e ...)
   (call-with-continuation-prompt (λ () e ...) racklog-prompt-tag))
-(define-syntax-rule (let/racklog-cc k e ...)
+(define-syntax-rule (let/racklog-cc k choice-type e ...)
   (let ([backtrack-to-chp curr-choice-point])
-    (set-choice-point-fail-return-point! backtrack-to-chp #t)
+    (set-as-fail-return-point! backtrack-to-chp #t choice-type)
     (call-with-current-continuation
       (λ (k) (let ([k (λ () (set-curr-choice-point backtrack-to-chp) (k))]) e ...))
       racklog-prompt-tag)))
-(define-syntax-rule (let/racklog-fk k e ...)
-  (let/racklog-cc k e ...))
+(define-syntax-rule (let/racklog-fk k choice-type e ...)
+  (let/racklog-cc k choice-type e ...))
 
 (define (%member x y)
   (%let (xs z zs)

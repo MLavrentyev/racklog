@@ -15,7 +15,8 @@
          [children #:mutable]
          key value
          [success #:mutable]
-         [fail-return-point #:mutable #:auto])
+         [fail-return-point #:mutable #:auto]
+         [choice-type #:mutable #:auto])
         #:auto-value #f)
 (define top-choice-point (choice-point #f empty #f #f 'unset))
 (define curr-choice-point top-choice-point)
@@ -38,6 +39,9 @@
           (logic-var-var-name lvar)
           lvar)
       'top))
+(define (set-as-fail-return-point! chp is-fail-return-point choice-type)
+  (set-choice-point-fail-return-point! is-fail-return-point)
+  (set-choice-point-choice-type! choice-type))
 (define (print-provenance-from-node choice-node indent var-mapping)
   (printf "~a(~a: ~a)~a\n"
           indent
