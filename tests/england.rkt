@@ -67,10 +67,10 @@
     ((w) (%married-no-children w))
     ((w) (%female w) (%not (%married-to w h)))))
 
-; example with unification order =/= order of introduction
+; example with unification order =/= order of introduction (doesn't seem to be possible)
 (define %parent-of-brother-sister
-  (%rel (a b fc)
-    ((a) (%parent-of a fc) (%brother-of b fc) (%female fc))))
+  (%rel (pbs mc fc)
+    ((pbs) (%brother-of mc fc) (%parent-of pbs fc) (%female fc))))
 
 ; example with negated recursion
 (define %person
