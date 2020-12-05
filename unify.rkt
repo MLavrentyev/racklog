@@ -40,15 +40,18 @@
           lvar)
       'top))
 (define (set-as-fail-return-point! chp is-fail-return-point choice-type)
-  (set-choice-point-fail-return-point! is-fail-return-point)
-  (set-choice-point-choice-type! choice-type))
+  (set-choice-point-fail-return-point! chp is-fail-return-point)
+  (set-choice-point-choice-type! chp choice-type))
 (define (print-provenance-from-node choice-node indent var-mapping)
-  (printf "~a(~a: ~a)~a\n"
+  (printf "~a(~a: ~a)~a~a\n"
           indent
           (get-logic-var-name (choice-point-key choice-node))
           (get-logic-var-name (choice-point-value choice-node))
           (if (choice-point-fail-return-point choice-node)
               " #<fail-return-point>"
+              "")
+          (if (choice-point-choice-type choice-node)
+              (format " #<type:~a>" (choice-point-choice-type choice-node))
               ""))
           ;(choice-point-success choice-node))
   (map (λ (child) (print-provenance-from-node child (string-append "| " indent) var-mapping))
