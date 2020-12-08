@@ -80,7 +80,8 @@
     ((%cut-delimiter g)
      (lambda (__sk)
        (lambda (__fk)
-         (let ([this-! (lambda (__sk2)
+         (let ([__fk-log (thunk (set-choice-point-cut-failure! curr-choice-point #t) (__fk))]
+               [this-! (lambda (__sk2)
                          (lambda (__fk2)
                            (__sk2 __fk)))])
            (syntax-parameterize
@@ -359,7 +360,7 @@
   (let ([backtrack-to-chp curr-choice-point])
     (set-as-fail-return-point! backtrack-to-chp #t choice-type)
     (call-with-current-continuation
-      (λ (k) (let ([k (λ () (set-curr-choice-point backtrack-to-chp) (k))]) e ...))
+      (λ (k) (let ([k (thunk (set-curr-choice-point backtrack-to-chp) (k))]) e ...))
       racklog-prompt-tag)))
 (define-syntax-rule (let/racklog-fk k choice-type e ...)
   (let/racklog-cc k choice-type e ...))

@@ -14,11 +14,11 @@
         (parent
          [children #:mutable]
          key value
-         [success #:mutable]
+         [cut-failure #:mutable #:auto]
          [fail-return-point #:mutable #:auto]
          [choice-type #:mutable #:auto])
         #:auto-value #f)
-(define top-choice-point (choice-point #f empty #f #f 'unset))
+(define top-choice-point (choice-point #f empty #f #f))
 (define curr-choice-point top-choice-point)
 (define (reset-choice-points)
   (set! top-choice-point (choice-point #f empty #f #f 'unset))
@@ -149,7 +149,7 @@
 
 (define-syntax-rule (let/logic-var ([r v]) e ...)
   (begin
-    (let ([sub-chp (choice-point curr-choice-point '() r v 'unset)])
+    (let ([sub-chp (choice-point curr-choice-point '() r v)])
       (add-sub-choice-point curr-choice-point sub-chp)
       (set! curr-choice-point sub-chp))
     (with-continuation-mark r v (begin e ...))))
