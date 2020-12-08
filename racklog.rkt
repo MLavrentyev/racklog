@@ -130,7 +130,6 @@
        (syntax/loc stx
          (lambda (__sk)
            (lambda (__fk)
-             (printf "%is-unifying variable: ~a\n" (logic-var-var-name v))
              (((%= v (%is/fk fe __fk)) __sk) __fk)))))]))
 (define-syntax (%is/fk stx)
   (kernel-syntax-case stx #f
