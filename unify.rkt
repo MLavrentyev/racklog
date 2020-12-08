@@ -21,7 +21,7 @@
 (define top-choice-point (choice-point #f empty #f #f))
 (define curr-choice-point top-choice-point)
 (define (reset-choice-points)
-  (set! top-choice-point (choice-point #f empty #f #f 'unset))
+  (set! top-choice-point (choice-point #f empty #f #f))
   (set! curr-choice-point top-choice-point))
 (define (add-sub-choice-point curr-chp sub-chp)
   #;(printf "moving down: <~a:~a> -> <~a:~a>\n"
@@ -149,7 +149,7 @@
 
 (define-syntax-rule (let/logic-var ([r v]) e ...)
   (begin
-    (let ([sub-chp (choice-point curr-choice-point '() r v)])
+    (let ([sub-chp (choice-point curr-choice-point empty r v)])
       (add-sub-choice-point curr-choice-point sub-chp)
       (set! curr-choice-point sub-chp))
     (with-continuation-mark r v (begin e ...))))

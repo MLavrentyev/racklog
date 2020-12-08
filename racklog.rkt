@@ -3,6 +3,7 @@
                      racket/list
                      syntax/kerncase)
          racket/list
+         racket/function
          racket/contract
          racket/stxparam
          "control.rkt"
@@ -79,7 +80,7 @@
   (syntax-rules ()
     ((%cut-delimiter g)
      (lambda (__sk)
-       (lambda (__fk)
+       (lambda (__fk) ; FIXME: this is currently marking the node where it failed as cut spot
          (let ([__fk-log (thunk (set-choice-point-cut-failure! curr-choice-point #t) (__fk))]
                [this-! (lambda (__sk2)
                          (lambda (__fk2)
@@ -129,6 +130,7 @@
        (syntax/loc stx
          (lambda (__sk)
            (lambda (__fk)
+             (printf "%is-unifying variable: ~a\n" (logic-var-var-name v))
              (((%= v (%is/fk fe __fk)) __sk) __fk)))))]))
 (define-syntax (%is/fk stx)
   (kernel-syntax-case stx #f
