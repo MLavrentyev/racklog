@@ -7,7 +7,8 @@
          racket/contract
          racket/stxparam
          "control.rkt"
-         "unify.rkt")
+         "unify.rkt"
+         "reason.rkt")
 
 ;Dorai Sitaram
 ;1989, revised Feb. 1993, Mar. 1997
