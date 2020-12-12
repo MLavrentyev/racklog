@@ -1,7 +1,7 @@
 #lang racket/base
 (provide (all-defined-out))
 
-; struct for recording provenance
+; provenance recording
 (struct choice-point
         (parent
          [children #:mutable]
@@ -52,3 +52,8 @@
   (printf "--------------------------\n")
   (print-provenance-from-node top-choice-point "" var-mapping)
   (printf "--------------------------\n"))
+
+
+; failure reasons
+(struct config-var (value))
+(struct root-cause-formula (op parent [children #:mutable]))
