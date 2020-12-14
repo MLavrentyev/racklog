@@ -642,6 +642,8 @@
 (define (set-as-fail-return-point! chp is-fail-return-point choice-type)
   (set-choice-point-fail-return-point! chp is-fail-return-point)
   (set-choice-point-choice-type! chp choice-type))
+(define (print-hrule)
+  (printf "--------------------------\n"))
 (define (print-search-tree-from-node choice-node indent var-mapping)
   (printf "~a(~a: ~a)~a~a\n"
           indent
@@ -656,12 +658,17 @@
   (map (λ (child) (print-search-tree-from-node child (string-append "| " indent) var-mapping))
        (reverse (choice-point-children choice-node))))
 (define (print-search-tree var-mapping)
-  (printf "--------------------------\n")
+  (print-hrule)
   (print-search-tree-from-node top-choice-point "" var-mapping)
-  (printf "--------------------------\n"))
+  (print-hrule))
 
 
 ; failure reasons
-(struct config-var (value))
-(struct root-cause-formula (op parent [children #:mutable]))
+(struct %config-var (value))
+(struct cause-formula (op [children #:mutable]))
+(define (cause->string var-mapping cause)
+  (format "~a" (cons (cause-formula-op cause) (cause-formula-children cause))))
+(define (print-failure-cause var-mapping cause)
+  (printf "~a\n" (cause->string var-mapping cause))
+  (print-hrule))
 
