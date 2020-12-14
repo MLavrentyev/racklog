@@ -119,7 +119,7 @@
       stx (? logic-var? cons mcons box vector? hash? compound-struct? atom? else)
     [(_ v
         [(? logic-var? lv) logic-var-expr ...]
-        [(config-var val) cfg-var-expr ...]
+        [(%config-var val) cfg-var-expr ...]
         [(cons cl cr) cons-expr ...]
         [(mcons mcl mcr) mcons-expr ...]
         [(box bv) box-expr ...]
@@ -130,7 +130,7 @@
      (syntax/loc stx
        (match v
          [(? logic-var? lv) logic-var-expr ...]
-         [(config-var val) cfg-var-expr ...]
+         [(%config-var val) cfg-var-expr ...]
          [(cons cl cr) cons-expr ...]
          [(mcons mcl mcr) mcons-expr ...]
          [(box bv) box-expr ...]
@@ -140,7 +140,7 @@
          [(? atom? x) atom-expr ...]))]
     [(_ v
         [(? logic-var? lv) logic-var-expr ...]
-        [(config-var val) cfg-var-expr ...]
+        [(%config-var val) cfg-var-expr ...]
         [(cons cl cr) cons-expr ...]
         [(mcons mcl mcr) mcons-expr ...]
         [(box bv) box-expr ...]
@@ -152,7 +152,7 @@
      (syntax/loc stx
        (match v
          [(? logic-var? lv) logic-var-expr ...]
-         [(config-var val) cfg-var-expr ...]
+         [(%config-var val) cfg-var-expr ...]
          [(cons cl cr) cons-expr ...]
          [(mcons mcl mcr) mcons-expr ...]
          [(box bv) box-expr ...]
@@ -169,7 +169,7 @@
     (cond [(unbound-logic-var? s) '_]
           [(frozen-logic-var? s) s]
           [else (logic-var-val* (logic-var-val s))])]
-   [(config-var val) val]
+   [(%config-var val) val]
    [(cons l r)
     (cons (logic-var-val* l) (logic-var-val* r))]
    [(mcons l r)
@@ -193,7 +193,7 @@
                (cond [(unbound-logic-var? term) #f]
                      [(frozen-logic-var? term) #f]
                      [else (loop (logic-var-val term))])]
-              [(config-var val) (loop val)]
+              [(%config-var val) (loop val)]
               [(cons l r)
                (or (loop l) (loop r))]
               [(mcons l r)
@@ -213,7 +213,7 @@
     (cond [(unbound-logic-var? x) #f]
           [(frozen-logic-var? x) #t]
           [else (constant? (logic-var-val x))])]
-   [(config-var val) (constant? val)]
+   [(%config-var val) (constant? val)]
    [(cons l r) #f]
    [(mcons l r) #f]
    [(box v) #f]
@@ -229,7 +229,7 @@
     (cond [(unbound-logic-var? x) #f]
           [(frozen-logic-var? x) #f]
           [else (is-compound? (logic-var-val x))])]
-   [(config-var val) (is-compound? val)]
+   [(%config-var val) (is-compound? val)]
    [(cons l r) #t]
    [(mcons l r) #t]
    [(box v) #t]
@@ -245,7 +245,7 @@
     (cond [(unbound-logic-var? x) #t]
           [(frozen-logic-var? x) #f]
           [else (var? (logic-var-val x))])]
-   [(config-var val) (var? val)]
+   [(%config-var val) (var? val)]
    [(cons l r) (or (var? l) (var? r))]
    [(mcons l r) (or (var? l) (var? r))]
    [(box v) (var? v)]
@@ -267,7 +267,7 @@
                      (lambda ()
                        (freeze-ref s)))
           (loop (logic-var-val s)))]
-     [(config-var val) (config-var (loop val))]
+     [(%config-var val) (%config-var (loop val))]
      [(cons l r)
       (cons (loop l) (loop r))]
      [(mcons l r)
@@ -288,7 +288,7 @@
     (cond [(unbound-logic-var? f) f]
           [(frozen-logic-var? f) (thaw-frozen-ref f)]
           [else (melt (logic-var-val f))])]
-   [(config-var val) (config-var (melt val))]
+   [(%config-var val) (%config-var (melt val))]
    [(cons l r)
     (cons (melt l) (melt r))]
    [(mcons l r)
@@ -311,7 +311,7 @@
             [(frozen-logic-var? f)
              (hash-ref! dict f (_ (gensym)))]
             [else (loop (logic-var-val f))])]
-     [(config-var val) (config-var (loop val))]
+     [(%config-var val) (%config-var (loop val))]
      [(cons l r)
       (cons (loop l) (loop r))]
      [(mcons l r)
@@ -331,7 +331,7 @@
     (let/logic-var ([f (freeze s)])
       (melt-new f))))
 
-(define (ident? x y) ; TODO: fill this in with uni-match config-vars
+(define (ident? x y) ; TODO: fill this in with uni-match %config-vars
   (uni-match
    x
    [(? logic-var? x)
@@ -348,7 +348,21 @@
                         [else (ident? x (logic-var-val y))])]
                  [else #f])]
           [else (ident? (logic-var-val x) y)])]
-   [(config-var val) ...] ; TODO: fill in
+   [(%config-var x-val) 
+    (uni-match
+     y
+     [(? logic-var? y)
+      (cond [(unbound-logic-var? y) #f]
+            [(frozen-logic-var? y) #f]
+            [else (ident? x (logic-var-val y))])]
+     [(%config-var y-val) (ident? x-val y-val)]
+     [(cons yl yr) (ident? x-val (cons yl yr))]
+     [(mcons yl yr) (ident? x-val (mcons yl yr))]
+     [(box yv) (ident? x-val (box yv))]
+     [(? vector? y) (ident? x-val y)]
+     [(? hash? y) (ident? x-val y)]
+     [(? compound-struct? y) (ident? x-val y)]
+     [(? atom? y) (ident? x-val y)])]
    [(cons xl xr)
     (uni-match
      y
@@ -356,6 +370,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
+     [(%config-var yv) (ident? x yv)]
      [(cons yl yr)
       (and (ident? xl yl) (ident? xr yr))]
      [(mcons yl yr) #f]
@@ -371,6 +386,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
+     [(%config-var yv) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr)
       (and (ident? xl yl) (ident? xr yr))]
@@ -386,6 +402,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
+     [(%config-var yv) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box yv) (ident? xv yv)]
@@ -400,6 +417,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
+     [(%config-var yv) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box v) #f]
@@ -420,6 +438,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
+     [(%config-var yv) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box v) #f]
@@ -440,6 +459,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
+     [(%config-var yv) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box v) #f]
@@ -455,6 +475,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
+     [(%config-var yv) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box v) #f]
@@ -559,7 +580,7 @@
   (uni-match
    x
    [(? logic-var? x) #f]
-   [(config-var val) (answer-value? val)]
+   [(%config-var val) (answer-value? val)]
    [(cons l r) (and (answer-value? l) (answer-value? r))]
    [(mcons l r) (and (answer-value? l) (answer-value? r))]
    [(box v) (answer-value? v)]
@@ -577,7 +598,7 @@
   (uni-match
    x
    [(? logic-var? x) #t]
-   [(config-var val) (unifiable? val)]
+   [(%config-var val) (unifiable? val)]
    [(cons l r) (and (unifiable? l) (unifiable? r))]
    [(mcons l r) (and (unifiable? l) (unifiable? r))]
    [(box v) (unifiable? v)]
