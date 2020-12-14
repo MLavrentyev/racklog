@@ -29,7 +29,7 @@
 
 (define %nth-descendant-of
   (%rel (d a n n-1 pd)
-    ((a a 0))
+    ((a a 0))       ; TODO: change to check/fail for <= 0
     ((d a n) (%is n-1 (- n 1)) (%father-of pd d) (%nth-descendant-of pd a n-1))))
 
 (define %recent-descendant-of
