@@ -50,10 +50,12 @@
                       (cond
                         [(null? v) v]
                         [(pair? v) (cons (car v) (lv->list (cdr v)))]
-                        [else (fk)])))])
+                        [else (fk (reason-formula 'not (reason-formula 'list? args)))])))])
       (if (and (procedure? pred-v) (procedure-arity-includes? pred-v (length args-v)))
           (((apply pred-v args-v) sk) fk)
-          (fk)))))
+          (fk (reason-formula 'or
+                (reason-formula 'not (reason-formula 'procedure? pred))
+                (reason-formula 'not (reason-formula 'procedure-arity-includes? pred (reason-formula 'length args)))))))))
 
 (define (%andmap pred lst . rest)
   (define lsts (cons lst rest))
