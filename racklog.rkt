@@ -370,8 +370,10 @@
     (set-as-fail-return-point! backtrack-to-chp #t choice-type)
     (call-with-current-continuation
       (λ (k) (let ([k (λ (reason)
+                        (add-sub-choice-point curr-choice-point
+                                              (choice-point curr-choice-point empty #f 'fail))
                         (set-curr-choice-point backtrack-to-chp)
-                        ; TODO: (first (choice-point-children curr-choice-point)) gets the reason
+                        (set-choice-point-reason! (first (choice-point-children curr-choice-point)) reason)
                         (k))])
                   e ...))
       racklog-prompt-tag)))
