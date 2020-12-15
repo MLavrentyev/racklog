@@ -27,7 +27,11 @@
        (lambda (__fk)
          (let/racklog-fk __fk '%or
            (((logic-var-val* g) __sk) __fk)) ...
-         (__fk))))))
+         (define fail-reason
+                 (reason-formula
+                   'and
+                   (map choice-point-reason (choice-point-children curr-choice-point)))
+         (__fk fail-reason))))))
 
 (define-syntax %and
   (syntax-rules ()
