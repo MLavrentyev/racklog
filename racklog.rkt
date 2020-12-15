@@ -27,7 +27,6 @@
        (lambda (__fk)
          (let/racklog-fk __fk '%or
            (((logic-var-val* g) __sk) __fk)) ...
-         (set-choice-point-success! curr-choice-point #f)
          (__fk))))))
 
 (define-syntax %and
@@ -97,7 +96,6 @@
           (for ([clause (in-list (relation-clauses rel))])
             (let/racklog-fk fail-clause '%rel
               (((clause __fmls !) __sk) fail-clause)))
-          (set-choice-point-success! curr-choice-point #f)
           (__fk))))))
 
 (define-syntax %rel
