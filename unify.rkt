@@ -97,7 +97,7 @@
 
 (define-syntax-rule (let/logic-var ([r v]) e ...)
   (begin
-    (let ([sub-chp (choice-point curr-choice-point empty r v)])
+    (let ([sub-chp (choice-point curr-choice-point empty r v 'unset)])
       (add-sub-choice-point curr-choice-point sub-chp)
       (set! curr-choice-point sub-chp))
     (with-continuation-mark r v (begin e ...))))
@@ -614,14 +614,15 @@
         (parent
          [children #:mutable]
          key value
-         [cut-failure #:mutable #:auto]
+         [success #:mutable]
+         [reason #:mutable #:auto]
          [fail-return-point #:mutable #:auto]
          [choice-type #:mutable #:auto])
         #:auto-value #f)
-(define top-choice-point (choice-point #f empty #f #f))
+(define top-choice-point (choice-point #f empty #f #f 'unset))
 (define curr-choice-point top-choice-point)
 (define (reset-choice-points)
-  (set! top-choice-point (choice-point #f empty #f #f))
+  (set! top-choice-point (choice-point #f empty #f #f 'unset))
   (set! curr-choice-point top-choice-point))
 (define (add-sub-choice-point curr-chp sub-chp)
   #;(printf "moving down: <~a:~a> -> <~a:~a>\n"
@@ -645,15 +646,18 @@
 (define (print-hrule)
   (printf "--------------------------\n"))
 (define (print-search-tree-from-node choice-node indent var-mapping)
-  (printf "~a(~a: ~a)~a~a\n"
+  (printf "~a(~a: ~a)~a~a~a\n"
           indent
           (get-logic-var-name (choice-point-key choice-node))
           (get-logic-var-name (choice-point-value choice-node))
           (if (choice-point-fail-return-point choice-node)
-              " #<fail-return-point>"
+              " <choice>"
               "")
           (if (choice-point-choice-type choice-node)
-              (format " #<type:~a>" (choice-point-choice-type choice-node))
+              (format " <type:~a>" (choice-point-choice-type choice-node))
+              "")
+          (if (choice-point-fail-return-point choice-node)
+              (format " <success:~a>" (choice-point-success choice-node))
               ""))
   (map (λ (child) (print-search-tree-from-node child (string-append "| " indent) var-mapping))
        (reverse (choice-point-children choice-node))))
@@ -661,7 +665,6 @@
   (print-hrule)
   (print-search-tree-from-node top-choice-point "" var-mapping)
   (print-hrule))
-
 
 ; failure reasons
 (struct %config-var (value))
