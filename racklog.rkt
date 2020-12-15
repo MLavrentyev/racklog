@@ -111,7 +111,7 @@
        ...)))))
 
 (define ((%fail sk) fk)
-  (fk))
+  (fk (reason-formula 'false empty)))
 
 (define ((%true sk) fk)
   (sk fk))
