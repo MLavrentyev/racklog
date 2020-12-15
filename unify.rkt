@@ -348,7 +348,7 @@
                         [else (ident? x (logic-var-val y))])]
                  [else #f])]
           [else (ident? (logic-var-val x) y)])]
-   [(%config-var x-val) 
+   [(%config-var x-val)
     (uni-match
      y
      [(? logic-var? y)
@@ -667,7 +667,12 @@
 (struct %config-var (value))
 (struct reason-formula (op [children #:mutable]))
 (define (reason->string var-mapping reason)
-  (format "~a" (cons (reason-formula-op reason) (reason-formula-children reason))))
+  (define sub-formula-strs
+    (map (λ (sf) (reason->string var-mapping sf))
+         (reason-formula-children reason)))
+  (format "(~a~a)"
+          (reason-formula-op reason)
+          (foldl (λ (sfs res) (format " ~a~a" sfs res)) "" sub-formula-strs)))
 (define (print-failure-reason var-mapping reason)
   (printf "~a\n" (reason->string var-mapping reason))
   (print-hrule))
