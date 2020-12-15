@@ -664,12 +664,16 @@
   (print-hrule))
 
 ; failure reasons
-(struct reason-formula (op args) #:transparent)
+(struct reason-formula (op args) #:transparent #:name formula #:constructor-name make-reason-formula)
+(define (reason-formula op . args)
+  (make-reason-formula op args))
 (define (get-child-reasons chp)
   (map choice-point-reason (choice-point-children chp)))
+(define (neg-formula reason)
+  (reason-formula 'not reason))
 (define (reason->string var-mapping reason)
   (define sub-formula-strs
-    (map (λ (sf) (reason->string var-mapping sf))
+    (map (λ (sf) (if (reason-formula? sf) (reason->string var-mapping sf) (format "~a" sf)))
          (reason-formula-args reason)))
   (format "(~a~a)"
           (reason-formula-op reason)
