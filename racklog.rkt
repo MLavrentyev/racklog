@@ -25,10 +25,10 @@
     ((%or g ...)
      (lambda (__sk)
        (lambda (__fk)
-         (define failure-reason (reason-formula 'and empty))
-         (let/racklog-fk __fk '%or failure-reason
+         (let/racklog-fk __fk '%or
            (((logic-var-val* g) __sk) __fk)) ...
-         (__fk failure-reason))))))
+         (set-choice-point-success! curr-choice-point #f)
+         (__fk))))))
 
 (define-syntax %and
   (syntax-rules ()
@@ -60,19 +60,18 @@
   (define lsts (cons lst rest))
   (lambda (sk)
     (lambda (fk)
-      (define failure-reason (reason-formula 'and empty))
       ; Base case (all lists empty)
-      (let/racklog-fk fk '%and-map failure-reason
+      (let/racklog-fk fk '%and-map
         ((foldr (lambda (lst sk) ((%= lst '()) sk)) sk lsts) fk))
       ; Call and recur
-      (let/racklog-fk fk '%and-map failure-reason
+      (let/racklog-fk fk '%and-map
         (let ([heads (map (lambda (lst) (_)) lsts)]
               [tails (map (lambda (lst) (_)) lsts)])
           (let* ([sk ((apply %andmap pred tails) sk)]
                  [sk ((%apply pred heads) sk)]
                  [sk (foldr (lambda (lst h t sk) ((%= lst (cons h t)) sk)) sk lsts heads tails)])
             (sk fk))))
-      (fk failure-reason))))
+      (fk))))
 
 (define-syntax-parameter !
   (λ (stx) (raise-syntax-error '! "May only be used syntactically inside %rel or %cut-delimiter expression." stx)))
@@ -81,9 +80,8 @@
   (syntax-rules ()
     ((%cut-delimiter g)
      (lambda (__sk)
-       (lambda (__fk) ; FIXME: this is currently marking the node where it failed as cut spot
-         (let ([__fk-log (thunk (set-choice-point-cut-failure! curr-choice-point #t) (__fk))]
-               [this-! (lambda (__sk2)
+       (lambda (__fk)
+         (let ([this-! (lambda (__sk2)
                          (lambda (__fk2)
                            (__sk2 __fk)))])
            (syntax-parameterize
@@ -96,11 +94,11 @@
     (%cut-delimiter
       (lambda (__sk)
         (lambda (__fk)
-          (define failure-reason (reason-formula 'and empty))
           (for ([clause (in-list (relation-clauses rel))])
-            (let/racklog-fk fail-clause '%rel failure-reason
+            (let/racklog-fk fail-clause '%rel
               (((clause __fmls !) __sk) fail-clause)))
-          (__fk failure-reason))))))
+          (set-choice-point-success! curr-choice-point #f)
+          (__fk))))))
 
 (define-syntax %rel
   (syntax-rules ()
@@ -115,10 +113,10 @@
        ...)))))
 
 (define ((%fail sk) fk)
-  (fk (reason-formula 'false empty)))
+  (fk))
 
 (define ((%true sk) fk)
-  (sk fk (reason-formula 'true empty)))
+  (sk fk))
 
 (define-for-syntax orig-insp (variable-reference->module-declaration-inspector
                               (#%variable-reference)))
@@ -326,14 +324,14 @@
        (%let (v ...)
          (let ([var-mapping (list (cons 'v (logic-var-val* v)) ...)])
           (((logic-var-val* g)
-            (lambda (fk reason)
+            (lambda (fk)
               (print-search-tree var-mapping)
-              (print-failure-reason var-mapping reason)
+              ; (print-failure-reason var-mapping reason)
               (set-box! *more-fk* fk)
               (abort-to-racklog-prompt (list (cons 'v (logic-var-val* v)) ...))))
-           (lambda (reason)
+           (lambda ()
              (print-search-tree var-mapping)
-             (print-failure-reason var-mapping reason)
+            ;  (print-failure-reason var-mapping reason)
              (set-box! *more-fk* #f)
              (abort-to-racklog-prompt #f))))))]
     [(%which (v ...) g ...)
@@ -361,21 +359,15 @@
   (abort-current-continuation racklog-prompt-tag (λ () a)))
 (define-syntax-rule (with-racklog-prompt e ...)
   (call-with-continuation-prompt (λ () e ...) racklog-prompt-tag))
-(define-syntax-rule (let/racklog-cc k choice-type failure-reason e ...)
+(define-syntax-rule (let/racklog-cc k choice-type e ...)
   (let ([backtrack-to-chp curr-choice-point])
     (set-as-fail-return-point! backtrack-to-chp #t choice-type)
     (call-with-current-continuation
-      (λ (k) (let ([k
-                    (λ (reason)
-                      (set-reason-formula-children!
-                        failure-reason
-                        (cons reason (reason-formula-children failure-reason)))
-                      (set-curr-choice-point backtrack-to-chp)
-                      (k))])
+      (λ (k) (let ([k (thunk (set-curr-choice-point backtrack-to-chp) (k))])
                   e ...))
       racklog-prompt-tag)))
-(define-syntax-rule (let/racklog-fk k choice-type failure-reason e ...)
-  (let/racklog-cc k choice-type failure-reason e ...))
+(define-syntax-rule (let/racklog-fk k choice-type e ...)
+  (let/racklog-cc k choice-type e ...))
 
 (define (%member x y)
   (%let (xs z zs)
@@ -401,8 +393,8 @@
         (())
         (() (%repeat))))
 
-(define fk? (any/c . -> . none/c))
-(define sk? (fk? any/c . -> . none/c))
+(define fk? (-> none/c))
+(define sk? (fk? . -> . none/c))
 (define goal/c
   (or/c goal-with-free-vars?
         (sk? . -> . (fk? . -> . none/c))))
@@ -411,7 +403,7 @@
 
 ; XXX Add contracts in theses macro expansions
 (provide %and %assert! %assert-after! %cut-delimiter %free-vars %is %let
-         %or %rel %which %find-all !)
+         %or %rel %which %find-all ! %config-var)
 (provide/contract
  [goal/c contract?]
  [logic-var? (any/c . -> . boolean?)]
