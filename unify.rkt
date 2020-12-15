@@ -665,10 +665,10 @@
 
 ; failure reasons
 (struct %config-var (value))
-(struct cause-formula (op [children #:mutable]))
-(define (cause->string var-mapping cause)
-  (format "~a" (cons (cause-formula-op cause) (cause-formula-children cause))))
-(define (print-failure-cause var-mapping cause)
-  (printf "~a\n" (cause->string var-mapping cause))
+(struct reason-formula (op [children #:mutable]))
+(define (reason->string var-mapping reason)
+  (format "~a" (cons (reason-formula-op reason) (reason-formula-children reason))))
+(define (print-failure-reason var-mapping reason)
+  (printf "~a\n" (reason->string var-mapping reason))
   (print-hrule))
 
