@@ -100,7 +100,11 @@
           (for ([clause (in-list (relation-clauses rel))])
             (let/racklog-fk fail-clause '%rel
               (((clause __fmls !) __sk) fail-clause)))
-          (__fk))))))
+          (define fail-reason
+                  (reason-formula
+                    'and
+                    (map choice-point-reason (choice-point-children curr-choice-point))))
+          (__fk fail-reason))))))
 
 (define-syntax %rel
   (syntax-rules ()
