@@ -84,11 +84,11 @@
     (lambda (sk)
       (lambda (fk)
         (let ([pred (if (unbound-logic-var? v)
-                        (fk)
+                        (fk (reason-formula 'todo-logic-var-app))
                         (logic-var-val* v))])
           (if (and (procedure? pred) (procedure-arity-includes? pred (length args)))
               (((apply pred args) sk) fk)
-              (fk)))))))
+              (fk (reason-formula 'todo-logic-var-app2))))))))
 
 (define *unbound* (string->uninterned-symbol "_"))
 
@@ -486,12 +486,13 @@
 
 (define ((unify t1 t2) sk)
   (lambda (fk)
+    (define unify-fail-reason (neg-formula (reason-formula '= t1 t2)))
     (define (unify1 t1 t2 next)
       (cond [(eqv? t1 t2) (next)]
             [(logic-var? t1)
              (cond [(unbound-logic-var? t1)
                     (cond [(occurs-in? t1 t2)
-                           (fk)]
+                           (fk (reason-formula 'occurs-in? t1 t2))]
                           [else
                            (let/logic-var ([t1 t2]) ; TODO: where the magic
                              (next))])]
@@ -500,10 +501,10 @@
                            (cond [(unbound-logic-var? t2)
                                   (unify1 t2 t1 next)]
                                  [(frozen-logic-var? t2)
-                                  (fk)]
+                                  (fk unify-fail-reason)]
                                  [else
                                   (unify1 t1 (logic-var-val t2) next)])]
-                          [else (fk)])]
+                          [else (fk unify-fail-reason)])]
                    [else
                     (unify1 (logic-var-val t1) t2 next)])]
             [(logic-var? t2) (unify1 t2 t1 next)]
@@ -526,7 +527,7 @@
                                (stream-first v2s)
                                (λ () (loop (stream-rest v1s)
                                            (stream-rest v2s))))))
-                 (fk))]
+                 (fk unify-fail-reason))]
             [(and (hash? t1) (hash? t2))
              (if (and (same-hash-kind? t1 t2)
                       (= (hash-count t1) (hash-count t2)))
@@ -538,8 +539,8 @@
                              (unify1 xv
                                      (hash-ref t2 xk)
                                      (λ () (loop (stream-rest xs))))
-                             (fk)))))
-                 (fk))]
+                             (fk unify-fail-reason)))))
+                 (fk unify-fail-reason))]
             [(and (compound-struct? t1) (compound-struct? t2))
              (if (compound-struct-same? t1 t2)
                  (let loop ([e1s (sequence->stream (in-compound-struct t1))]
@@ -550,10 +551,10 @@
                                (stream-first e2s)
                                (λ () (loop (stream-rest e1s)
                                            (stream-rest e2s))))))
-                 (fk))]
+                 (fk unify-fail-reason))]
             [(and (atom? t1) (atom? t2))
-             (if (equal? t1 t2) (next) (fk))]
-            [else (fk)]))
+             (if (equal? t1 t2) (next) (fk unify-fail-reason))]
+            [else (fk (reason-formula 'todo-unify-else))])) ; TODO: reason here
     (unify1 t1 t2 (λ () (sk fk)))))
 
 (define-syntax-rule (or* x f ...)

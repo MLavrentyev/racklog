@@ -72,7 +72,7 @@
                  [sk ((%apply pred heads) sk)]
                  [sk (foldr (lambda (lst h t sk) ((%= lst (cons h t)) sk)) sk lsts heads tails)])
             (sk fk))))
-      (fk))))
+      (fk (reason-formula 'and-map-todo))))) ; TODO: figure reason out here
 
 (define-syntax-parameter !
   (λ (stx) (raise-syntax-error '! "May only be used syntactically inside %rel or %cut-delimiter expression." stx)))
@@ -172,7 +172,8 @@
     [(_ x fk)
      (syntax/loc stx
        (if (and (logic-var? x) (unbound-logic-var? x))
-           (fk) (logic-var-val* x)))]
+           (fk (reason-formula 'is-fk-unsure)) ; TODO: figure out this reason
+           (logic-var-val* x)))]
 
     ))
 
@@ -189,30 +190,40 @@
 (define %=/= (make-binary-arithmetic-relation (compose not =)))
 
 (define (((%constant x) sk) fk)
-  (if (constant? x) (sk fk) (fk)))
+  (if (constant? x)
+      (sk fk)
+      (fk (neg-formula (reason-formula 'constant? x)))))
 
 (define (((%compound x) sk) fk)
-  (if (is-compound? x) (sk fk) (fk)))
+  (if (is-compound? x)
+      (sk fk)
+      (fk (neg-formula (reason-formula 'is-compound? x)))))
 
 (define (((%var x) sk) fk)
-  (if (var? x) (sk fk) (fk)))
+  (if (var? x)
+      (sk fk)
+      (fk (neg-formula (reason-formula 'var? x)))))
 
 (define (((%nonvar x) sk) fk)
-  (if (var? x) (fk) (sk fk)))
+  (if (var? x)
+      (fk (reason-formula 'var? x))
+      (sk fk)))
 
 (define ((make-negation p) . args)
   ;basically inlined cut-fail
   (lambda (sk)
     (lambda (fk)
       (((apply p args)
-        (lambda (fk2) (fk)))
+        (lambda (fk2) (fk (reason-formula 'make-negation)))) ; TODO: figure this out
        (lambda () (sk fk))))))
 
 (define %/=
   (make-negation %=))
 
 (define (((%== x y) sk) fk)
-  (if (ident? x y) (sk fk) (fk)))
+  (if (ident? x y)
+      (sk fk)
+      (fk (neg-formula (reason-formula 'ident? x y)))))
 
 (define %/==
   (make-negation %==))
@@ -280,7 +291,7 @@
         ((goal
           (lambda (fk)
             (set! acc (kons (logic-var-val* lv2) acc))
-            (fk)))
+            (fk (reason-formula 'make-bag-of-aux-todo)))) ; TODO: figure this reason out
          (lambda ()
            (((separate-bags fvv bag acc) sk) fk)))))))
 
