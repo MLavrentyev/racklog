@@ -27,11 +27,7 @@
        (lambda (__fk)
          (let/racklog-fk __fk '%or
            (((logic-var-val* g) __sk) __fk)) ...
-         (define fail-reason
-                 (reason-formula
-                   'and
-                   (map choice-point-reason (choice-point-children curr-choice-point))))
-         (__fk fail-reason))))))
+         (__fk (reason-formula 'and (get-child-reasons curr-choice-point))))))))
 
 (define-syntax %and
   (syntax-rules ()
@@ -97,14 +93,11 @@
     (%cut-delimiter
       (lambda (__sk)
         (lambda (__fk)
+          (printf "TEST: in relation\n")
           (for ([clause (in-list (relation-clauses rel))])
             (let/racklog-fk fail-clause '%rel
               (((clause __fmls !) __sk) fail-clause)))
-          (define fail-reason
-                  (reason-formula
-                    'and
-                    (map choice-point-reason (choice-point-children curr-choice-point))))
-          (__fk fail-reason))))))
+          (__fk (reason-formula 'and (get-child-reasons curr-choice-point))))))))
 
 (define-syntax %rel
   (syntax-rules ()
