@@ -391,7 +391,7 @@
         (())
         (() (%repeat))))
 
-(define fk? (-> none/c))
+(define fk? (any/c . -> . none/c))
 (define sk? (fk? . -> . none/c))
 (define goal/c
   (or/c goal-with-free-vars?
