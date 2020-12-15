@@ -663,15 +663,13 @@
   (print-hrule))
 
 ; failure reasons
-(struct reason-formula ([op #:mutable] [children #:mutable]) #:transparent)
-(define (add-formula-child! reason child)
-  (set-reason-formula-children!
-    reason
-    (cons child (reason-formula-children reason))))
+(struct reason-formula (op args) #:transparent)
+(define (get-child-reasons chp)
+  (map choice-point-reason (choice-point-children chp)))
 (define (reason->string var-mapping reason)
   (define sub-formula-strs
     (map (λ (sf) (reason->string var-mapping sf))
-         (reason-formula-children reason)))
+         (reason-formula-args reason)))
   (format "(~a~a)"
           (reason-formula-op reason)
           (foldl (λ (sfs res) (format " ~a~a" sfs res)) "" sub-formula-strs)))
