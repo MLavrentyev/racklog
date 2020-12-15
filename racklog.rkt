@@ -371,7 +371,7 @@
     (call-with-current-continuation
       (λ (k) (let ([k (λ (reason)
                         (add-sub-choice-point curr-choice-point
-                                              (choice-point curr-choice-point empty #f 'fail))
+                                              (choice-point curr-choice-point empty 'fail 'fail))
                         (set-curr-choice-point backtrack-to-chp)
                         (set-choice-point-reason! (first (choice-point-children curr-choice-point)) reason)
                         (k))])
