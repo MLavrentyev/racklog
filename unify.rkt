@@ -665,7 +665,11 @@
 
 ; failure reasons
 (struct %config-var (value))
-(struct reason-formula (op [children #:mutable]))
+(struct reason-formula ([op #:mutable] [children #:mutable]) #:transparent)
+(define (add-formula-child! reason child)
+  (set-reason-formula-children!
+    reason
+    (cons child (reason-formula-children reason))))
 (define (reason->string var-mapping reason)
   (define sub-formula-strs
     (map (λ (sf) (reason->string var-mapping sf))
