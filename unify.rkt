@@ -614,6 +614,7 @@
         (parent
          [children #:mutable]
          key value
+         [reason #:mutable #:auto]
          [fail-return-point #:mutable #:auto]
          [choice-type #:mutable #:auto])
         #:auto-value #f)
