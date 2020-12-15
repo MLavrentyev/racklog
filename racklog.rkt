@@ -327,7 +327,7 @@
               ; (print-failure-reason var-mapping reason)
               (set-box! *more-fk* fk)
               (abort-to-racklog-prompt (list (cons 'v (logic-var-val* v)) ...))))
-           (lambda ()
+           (lambda (reason)
              (print-search-tree var-mapping)
             ;  (print-failure-reason var-mapping reason)
              (set-box! *more-fk* #f)
@@ -361,7 +361,10 @@
   (let ([backtrack-to-chp curr-choice-point])
     (set-as-fail-return-point! backtrack-to-chp #t choice-type)
     (call-with-current-continuation
-      (λ (k) (let ([k (thunk (set-curr-choice-point backtrack-to-chp) (k))])
+      (λ (k) (let ([k (λ (reason)
+                        (set-curr-choice-point backtrack-to-chp)
+                        ; TODO: (first (choice-point-children curr-choice-point)) gets the reason
+                        (k))])
                   e ...))
       racklog-prompt-tag)))
 (define-syntax-rule (let/racklog-fk k choice-type e ...)
