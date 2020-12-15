@@ -30,7 +30,7 @@
          (define fail-reason
                  (reason-formula
                    'and
-                   (map choice-point-reason (choice-point-children curr-choice-point)))
+                   (map choice-point-reason (choice-point-children curr-choice-point))))
          (__fk fail-reason))))))
 
 (define-syntax %and
@@ -337,7 +337,7 @@
               (abort-to-racklog-prompt (list (cons 'v (logic-var-val* v)) ...))))
            (lambda (reason)
              (print-search-tree var-mapping)
-            ;  (print-failure-reason var-mapping reason)
+             (print-failure-reason var-mapping reason)
              (set-box! *more-fk* #f)
              (abort-to-racklog-prompt #f))))))]
     [(%which (v ...) g ...)
