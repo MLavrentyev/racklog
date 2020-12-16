@@ -487,7 +487,6 @@
 
 (define ((unify t1 t2) sk)
   (lambda (fk)
-    (define unify-fail-reason (neg-formula (reason-formula '= t1 t2)))
     (define (unify1 t1 t2 next)
       (cond [(eqv? t1 t2) (next)]
             [(logic-var? t1)
@@ -495,17 +494,17 @@
                     (cond [(occurs-in? t1 t2)
                            (fk (reason-formula 'occurs-in? t1 t2))]
                           [else
-                           (let/logic-var ([t1 t2]) ; TODO: where the magic
+                           (let/logic-var ([t1 t2])
                              (next))])]
                    [(frozen-logic-var? t1)
                     (cond [(logic-var? t2)
                            (cond [(unbound-logic-var? t2)
                                   (unify1 t2 t1 next)]
                                  [(frozen-logic-var? t2)
-                                  (fk unify-fail-reason)]
+                                  (fk (neg-formula (reason-formula '= t1 t2)))]
                                  [else
                                   (unify1 t1 (logic-var-val t2) next)])]
-                          [else (fk unify-fail-reason)])]
+                          [else (fk (neg-formula (reason-formula '= t1 t2)))])]
                    [else
                     (unify1 (logic-var-val t1) t2 next)])]
             [(logic-var? t2) (unify1 t2 t1 next)]
@@ -528,7 +527,8 @@
                                (stream-first v2s)
                                (λ () (loop (stream-rest v1s)
                                            (stream-rest v2s))))))
-                 (fk unify-fail-reason))]
+                 (fk (neg-formula (reason-formula '= (reason-formula 'vector-length t1)
+                                                     (reason-formula 'vector-length t2)))))]
             [(and (hash? t1) (hash? t2))
              (if (and (same-hash-kind? t1 t2)
                       (= (hash-count t1) (hash-count t2)))
@@ -540,8 +540,11 @@
                              (unify1 xv
                                      (hash-ref t2 xk)
                                      (λ () (loop (stream-rest xs))))
-                             (fk unify-fail-reason)))))
-                 (fk unify-fail-reason))]
+                             (fk (reason-formula 'and (reason-formula 'hash-has-key? t1 xk)
+                                                      (neg-formula (reason-formula 'hash-has-key? t2 xk))))))))
+                 (fk (reason-formula 'or (neg-formula (reason-formula 'same-hash-kind? t1 t2))
+                                         (neg-formula (reason-formula '= (reason-formula 'hash-count t1)
+                                                                         (reason-formula 'hash-count t2))))))]
             [(and (compound-struct? t1) (compound-struct? t2))
              (if (compound-struct-same? t1 t2)
                  (let loop ([e1s (sequence->stream (in-compound-struct t1))]
@@ -552,9 +555,9 @@
                                (stream-first e2s)
                                (λ () (loop (stream-rest e1s)
                                            (stream-rest e2s))))))
-                 (fk unify-fail-reason))]
+                 (fk (neg-formula (reason-formula 'compound-struct-same? t1 t2))))]
             [(and (atom? t1) (atom? t2))
-             (if (equal? t1 t2) (next) (fk unify-fail-reason))]
+             (if (equal? t1 t2) (next) (fk (neg-formula (reason-formula '= t1 t2))))]
             [else (fk (reason-formula 'todo-unify-else))])) ; TODO: reason here
     (unify1 t1 t2 (λ () (sk fk)))))
 
