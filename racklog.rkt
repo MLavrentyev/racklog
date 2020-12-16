@@ -325,6 +325,7 @@
         (%= s (cons (_) (_)))))
 
 (define *more-fk* (box (λ (d) (error '%more "No active %which"))))
+(define *prev-soln* (box (void)))
 
 (define-syntax %which
   (syntax-rules ()
@@ -339,7 +340,8 @@
               (print-search-tree var-mapping)
               ; (print-failure-reason var-mapping reason)
               (set-box! *more-fk* fk)
-              (abort-to-racklog-prompt (list (cons 'v (logic-var-val* v)) ...))))
+              (set-box! *prev-soln* (reason-formula 'and (reason-formula '= v (logic-var-val* v)) ...))
+              (abort-to-racklog-prompt var-mapping)))
            (lambda (reason)
              (print-search-tree var-mapping)
              (print-failure-reason var-mapping reason)
@@ -351,7 +353,7 @@
 (define (%more)
   (with-racklog-prompt
     (if (unbox *more-fk*)
-        ((unbox *more-fk*))
+        ((unbox *more-fk*) (neg-formula (unbox *prev-soln*)))
         #f)))
 
 (define-syntax %find-all
