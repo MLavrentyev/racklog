@@ -78,17 +78,18 @@
 
 (define-struct logic-var
   (var-name)
+  #:transparent
   #:property prop:procedure
   (lambda (v . args)
     ; Coerce (v arg ...) to a goal, equivalent to %fail if v is not a procedure of the correct arity
     (lambda (sk)
       (lambda (fk)
         (let ([pred (if (unbound-logic-var? v)
-                        (fk)
+                        (fk (reason-formula 'todo-logic-var-app))
                         (logic-var-val* v))])
           (if (and (procedure? pred) (procedure-arity-includes? pred (length args)))
               (((apply pred args) sk) fk)
-              (fk)))))))
+              (fk (reason-formula 'todo-logic-var-app2))))))))
 
 (define *unbound* (string->uninterned-symbol "_"))
 
@@ -491,19 +492,19 @@
             [(logic-var? t1)
              (cond [(unbound-logic-var? t1)
                     (cond [(occurs-in? t1 t2)
-                           (fk)]
+                           (fk (reason-formula 'occurs-in? t1 t2))]
                           [else
-                           (let/logic-var ([t1 t2]) ; TODO: where the magic
+                           (let/logic-var ([t1 t2])
                              (next))])]
                    [(frozen-logic-var? t1)
                     (cond [(logic-var? t2)
                            (cond [(unbound-logic-var? t2)
                                   (unify1 t2 t1 next)]
                                  [(frozen-logic-var? t2)
-                                  (fk)]
+                                  (fk (neg-formula (reason-formula '= t1 t2)))]
                                  [else
                                   (unify1 t1 (logic-var-val t2) next)])]
-                          [else (fk)])]
+                          [else (fk (neg-formula (reason-formula '= t1 t2)))])]
                    [else
                     (unify1 (logic-var-val t1) t2 next)])]
             [(logic-var? t2) (unify1 t2 t1 next)]
@@ -526,7 +527,8 @@
                                (stream-first v2s)
                                (λ () (loop (stream-rest v1s)
                                            (stream-rest v2s))))))
-                 (fk))]
+                 (fk (neg-formula (reason-formula '= (reason-formula 'vector-length t1)
+                                                     (reason-formula 'vector-length t2)))))]
             [(and (hash? t1) (hash? t2))
              (if (and (same-hash-kind? t1 t2)
                       (= (hash-count t1) (hash-count t2)))
@@ -538,8 +540,11 @@
                              (unify1 xv
                                      (hash-ref t2 xk)
                                      (λ () (loop (stream-rest xs))))
-                             (fk)))))
-                 (fk))]
+                             (fk (reason-formula 'and (reason-formula 'hash-has-key? t1 xk)
+                                                      (neg-formula (reason-formula 'hash-has-key? t2 xk))))))))
+                 (fk (reason-formula 'or (neg-formula (reason-formula 'same-hash-kind? t1 t2))
+                                         (neg-formula (reason-formula '= (reason-formula 'hash-count t1)
+                                                                         (reason-formula 'hash-count t2))))))]
             [(and (compound-struct? t1) (compound-struct? t2))
              (if (compound-struct-same? t1 t2)
                  (let loop ([e1s (sequence->stream (in-compound-struct t1))]
@@ -550,10 +555,10 @@
                                (stream-first e2s)
                                (λ () (loop (stream-rest e1s)
                                            (stream-rest e2s))))))
-                 (fk))]
+                 (fk (neg-formula (reason-formula 'compound-struct-same? t1 t2))))]
             [(and (atom? t1) (atom? t2))
-             (if (equal? t1 t2) (next) (fk))]
-            [else (fk)]))
+             (if (equal? t1 t2) (next) (fk (neg-formula (reason-formula '= t1 t2))))]
+            [else (fk (reason-formula 'todo-unify-else))])) ; TODO: reason here
     (unify1 t1 t2 (λ () (sk fk)))))
 
 (define-syntax-rule (or* x f ...)
@@ -614,6 +619,7 @@
         (parent
          [children #:mutable]
          key value
+         [reason #:mutable #:auto]
          [fail-return-point #:mutable #:auto]
          [choice-type #:mutable #:auto])
         #:auto-value #f)
@@ -662,18 +668,23 @@
   (print-hrule))
 
 ; failure reasons
-(struct reason-formula ([op #:mutable] [children #:mutable]) #:transparent)
-(define (add-formula-child! reason child)
-  (set-reason-formula-children!
-    reason
-    (cons child (reason-formula-children reason))))
+(struct reason-formula (op args) #:transparent #:name formula #:constructor-name make-reason-formula)
+(define (reason-formula op . args)
+  (make-reason-formula op args))
+(define (get-child-reasons chp)
+  (map choice-point-reason (choice-point-children chp)))
+(define (neg-formula reason)
+  (reason-formula 'not reason))
 (define (reason->string var-mapping reason)
   (define sub-formula-strs
-    (map (λ (sf) (reason->string var-mapping sf))
-         (reason-formula-children reason)))
+    (map (λ (sf) (cond [(reason-formula? sf) (reason->string var-mapping sf)]
+                       [(logic-var? sf) (format "~a" (logic-var-var-name sf))]
+                       [else (format "~a" sf)]))
+         (reason-formula-args reason)))
   (format "(~a~a)"
           (reason-formula-op reason)
           (foldl (λ (sfs res) (format " ~a~a" sfs res)) "" sub-formula-strs)))
+
 (define (print-failure-reason var-mapping reason)
   (printf "~a\n" (reason->string var-mapping reason))
   (print-hrule))

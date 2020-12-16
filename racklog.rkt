@@ -27,7 +27,7 @@
        (lambda (__fk)
          (let/racklog-fk __fk '%or
            (((logic-var-val* g) __sk) __fk)) ...
-         (__fk))))))
+         (__fk (make-reason-formula 'and (get-child-reasons curr-choice-point))))))))
 
 (define-syntax %and
   (syntax-rules ()
@@ -50,10 +50,12 @@
                       (cond
                         [(null? v) v]
                         [(pair? v) (cons (car v) (lv->list (cdr v)))]
-                        [else (fk)])))])
+                        [else (fk (neg-formula (reason-formula 'list? args)))])))])
       (if (and (procedure? pred-v) (procedure-arity-includes? pred-v (length args-v)))
           (((apply pred-v args-v) sk) fk)
-          (fk)))))
+          (fk (reason-formula 'or
+                (neg-formula (reason-formula 'procedure? pred))
+                (neg-formula (reason-formula 'procedure-arity-includes? pred (reason-formula 'length args)))))))))
 
 (define (%andmap pred lst . rest)
   (define lsts (cons lst rest))
@@ -70,7 +72,7 @@
                  [sk ((%apply pred heads) sk)]
                  [sk (foldr (lambda (lst h t sk) ((%= lst (cons h t)) sk)) sk lsts heads tails)])
             (sk fk))))
-      (fk))))
+      (fk (reason-formula 'and-map-todo))))) ; TODO: figure reason out here
 
 (define-syntax-parameter !
   (λ (stx) (raise-syntax-error '! "May only be used syntactically inside %rel or %cut-delimiter expression." stx)))
@@ -96,7 +98,7 @@
           (for ([clause (in-list (relation-clauses rel))])
             (let/racklog-fk fail-clause '%rel
               (((clause __fmls !) __sk) fail-clause)))
-          (__fk))))))
+          (__fk (make-reason-formula 'and (get-child-reasons curr-choice-point))))))))
 
 (define-syntax %rel
   (syntax-rules ()
@@ -111,7 +113,7 @@
        ...)))))
 
 (define ((%fail sk) fk)
-  (fk))
+  (fk (reason-formula 'false empty)))
 
 (define ((%true sk) fk)
   (sk fk))
@@ -169,7 +171,8 @@
     [(_ x fk)
      (syntax/loc stx
        (if (and (logic-var? x) (unbound-logic-var? x))
-           (fk) (logic-var-val* x)))]
+           (fk (reason-formula 'is-fk-unsure)) ; TODO: figure out this reason
+           (logic-var-val* x)))]
 
     ))
 
@@ -186,30 +189,40 @@
 (define %=/= (make-binary-arithmetic-relation (compose not =)))
 
 (define (((%constant x) sk) fk)
-  (if (constant? x) (sk fk) (fk)))
+  (if (constant? x)
+      (sk fk)
+      (fk (neg-formula (reason-formula 'constant? x)))))
 
 (define (((%compound x) sk) fk)
-  (if (is-compound? x) (sk fk) (fk)))
+  (if (is-compound? x)
+      (sk fk)
+      (fk (neg-formula (reason-formula 'is-compound? x)))))
 
 (define (((%var x) sk) fk)
-  (if (var? x) (sk fk) (fk)))
+  (if (var? x)
+      (sk fk)
+      (fk (neg-formula (reason-formula 'var? x)))))
 
 (define (((%nonvar x) sk) fk)
-  (if (var? x) (fk) (sk fk)))
+  (if (var? x)
+      (fk (reason-formula 'var? x))
+      (sk fk)))
 
 (define ((make-negation p) . args)
   ;basically inlined cut-fail
   (lambda (sk)
     (lambda (fk)
       (((apply p args)
-        (lambda (fk2) (fk)))
+        (lambda (fk2) (fk (reason-formula 'make-negation)))) ; TODO: figure this out
        (lambda () (sk fk))))))
 
 (define %/=
   (make-negation %=))
 
 (define (((%== x y) sk) fk)
-  (if (ident? x y) (sk fk) (fk)))
+  (if (ident? x y)
+      (sk fk)
+      (fk (neg-formula (reason-formula 'ident? x y)))))
 
 (define %/==
   (make-negation %==))
@@ -277,7 +290,7 @@
         ((goal
           (lambda (fk)
             (set! acc (kons (logic-var-val* lv2) acc))
-            (fk)))
+            (fk (reason-formula 'make-bag-of-aux-todo)))) ; TODO: figure this reason out
          (lambda ()
            (((separate-bags fvv bag acc) sk) fk)))))))
 
@@ -312,6 +325,7 @@
         (%= s (cons (_) (_)))))
 
 (define *more-fk* (box (λ (d) (error '%more "No active %which"))))
+(define *prev-soln* (box (void)))
 
 (define-syntax %which
   (syntax-rules ()
@@ -326,10 +340,11 @@
               (print-search-tree var-mapping)
               ; (print-failure-reason var-mapping reason)
               (set-box! *more-fk* fk)
-              (abort-to-racklog-prompt (list (cons 'v (logic-var-val* v)) ...))))
-           (lambda ()
+              (set-box! *prev-soln* (reason-formula 'and (reason-formula '= v (logic-var-val* v)) ...))
+              (abort-to-racklog-prompt var-mapping)))
+           (lambda (reason)
              (print-search-tree var-mapping)
-            ;  (print-failure-reason var-mapping reason)
+             (print-failure-reason var-mapping reason)
              (set-box! *more-fk* #f)
              (abort-to-racklog-prompt #f))))))]
     [(%which (v ...) g ...)
@@ -338,7 +353,7 @@
 (define (%more)
   (with-racklog-prompt
     (if (unbox *more-fk*)
-        ((unbox *more-fk*))
+        ((unbox *more-fk*) (neg-formula (unbox *prev-soln*)))
         #f)))
 
 (define-syntax %find-all
@@ -361,7 +376,12 @@
   (let ([backtrack-to-chp curr-choice-point])
     (set-as-fail-return-point! backtrack-to-chp #t choice-type)
     (call-with-current-continuation
-      (λ (k) (let ([k (thunk (set-curr-choice-point backtrack-to-chp) (k))])
+      (λ (k) (let ([k (λ (reason)
+                        (add-sub-choice-point curr-choice-point
+                                              (choice-point curr-choice-point empty 'fail 'fail))
+                        (set-curr-choice-point backtrack-to-chp)
+                        (set-choice-point-reason! (first (choice-point-children curr-choice-point)) reason)
+                        (k))])
                   e ...))
       racklog-prompt-tag)))
 (define-syntax-rule (let/racklog-fk k choice-type e ...)
@@ -391,7 +411,7 @@
         (())
         (() (%repeat))))
 
-(define fk? (-> none/c))
+(define fk? (any/c . -> . none/c))
 (define sk? (fk? . -> . none/c))
 (define goal/c
   (or/c goal-with-free-vars?
