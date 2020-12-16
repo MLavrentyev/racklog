@@ -16,6 +16,10 @@
   (%rel ()
     (('philip)) (('charles))))
 
+(define %female
+  (%rel ()
+    (('elizabeth)) (('anne))))
+
 (define %father-of
   (%rel ()
    (('philip 'charles))))
