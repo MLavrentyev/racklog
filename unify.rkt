@@ -78,6 +78,7 @@
 
 (define-struct logic-var
   (var-name)
+  #:transparent
   #:property prop:procedure
   (lambda (v . args)
     ; Coerce (v arg ...) to a goal, equivalent to %fail if v is not a procedure of the correct arity
@@ -673,11 +674,14 @@
   (reason-formula 'not reason))
 (define (reason->string var-mapping reason)
   (define sub-formula-strs
-    (map (λ (sf) (if (reason-formula? sf) (reason->string var-mapping sf) (format "~a" sf)))
+    (map (λ (sf) (cond [(reason-formula? sf) (reason->string var-mapping sf)]
+                       [(logic-var? sf) (format "~a" (logic-var-var-name sf))]
+                       [else (format "~a" sf)]))
          (reason-formula-args reason)))
   (format "(~a~a)"
           (reason-formula-op reason)
           (foldl (λ (sfs res) (format " ~a~a" sfs res)) "" sub-formula-strs)))
+
 (define (print-failure-reason var-mapping reason)
   (printf "~a\n" (reason->string var-mapping reason))
   (print-hrule))
