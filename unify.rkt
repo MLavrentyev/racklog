@@ -669,8 +669,8 @@
 
 ; failure reasons
 (struct reason-formula (op args) #:transparent #:name formula #:constructor-name make-reason-formula)
-(define false-formula (reason-formula 'false empty))
-(define true-formula (reason-formula 'true empty))
+(define false-formula (make-reason-formula 'false empty))
+(define true-formula (make-reason-formula 'true empty))
 (define (is-false-formula? formula) (equal? formula false-formula))
 (define (is-true-formula? formula) (equal? formula true-formula))
 (define (reason-formula op . args)
