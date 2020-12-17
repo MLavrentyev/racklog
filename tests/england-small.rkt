@@ -29,7 +29,7 @@
     ((c p) (%father-of p c))))
 
 ; example with a configuration variable
-(define generations 2)
+(define-config-var generations 2)
 
 (define %nth-descendant-of
   (%rel (d a n n-1 pd)
