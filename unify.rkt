@@ -631,11 +631,6 @@
   (set! top-choice-point (choice-point #f empty #f #f))
   (set! curr-choice-point top-choice-point))
 (define (add-sub-choice-point curr-chp sub-chp)
-  #;(printf "moving down: <~a:~a> -> <~a:~a>\n"
-         (if (choice-point-key curr-chp) (logic-var-var-name (choice-point-key curr-chp)) 'top)
-         (if (logic-var? (choice-point-value curr-chp)) (if (choice-point-value curr-chp) (logic-var-var-name (choice-point-value curr-chp)) 'top) 'value)
-         (if (choice-point-key sub-chp) (logic-var-var-name (choice-point-key sub-chp)) 'top)
-         (if (logic-var? (choice-point-value sub-chp)) (if (choice-point-value sub-chp) (logic-var-var-name (choice-point-value sub-chp)) 'top) 'value))
   (set-choice-point-children! curr-chp (cons sub-chp (choice-point-children curr-chp))))
 (define (set-curr-choice-point new-chp)
   (set! curr-choice-point new-chp)
@@ -685,7 +680,6 @@
   (if (not (reason-formula? reason)) reason
     (let ()
       (define simple-subformulas (map simplify-reason (reason-formula-args reason)))
-      (printf "reason-op: ~a\n" (reason-formula-op reason))
       (match (reason-formula-op reason)
         ['and
          (let ([non-true-sfs (filter (negate is-true-formula?) simple-subformulas)])
