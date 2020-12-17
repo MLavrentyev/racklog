@@ -13,6 +13,8 @@
 ; Fictional world with simple transitivity (no wife relations, etc.)
 
 (define-config-var mystery-man 'charles)
+(define-config-var mystery-woman 'anne)
+(define-config-var mystery-list (list 1 2 3))
 
 (define %male
   (%rel ()
@@ -20,7 +22,7 @@
 
 (define %female
   (%rel ()
-    (('elizabeth)) (('anne))))
+    (('elizabeth)) ((mystery-woman))))
 
 (define %father-of
   (%rel ()
