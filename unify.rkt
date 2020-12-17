@@ -686,11 +686,13 @@
       (match (reason-formula-op reason)
         ['and
          (cond
+          [(= 1 (length simple-subformulas)) (first simple-subformulas)]
           [(ormap is-false-formula? simple-subformulas) false-formula]
           [(andmap is-true-formula? simple-subformulas) true-formula]
           [else (make-reason-formula 'and (filter (negate is-true-formula?) simple-subformulas))])]
         ['or
          (cond
+          [(= 1 (length simple-subformulas)) (first simple-subformulas)]
           [(ormap is-true-formula? simple-subformulas) true-formula]
           [(andmap is-false-formula? simple-subformulas) false-formula]
           [else (make-reason-formula 'or (filter (negate is-false-formula?) simple-subformulas))])]
@@ -704,6 +706,7 @@
          (cond
           [(not (= (length simple-subformulas) 2)) (error "= must have exactly two subformulas")]
           [(equal? (first simple-subformulas) (second simple-subformulas)) true-formula]
+          [(andmap (negate config-var?) simple-subformulas) false-formula]
           [else (make-reason-formula '= simple-subformulas)])]
         [else (make-reason-formula (reason-formula-op reason) simple-subformulas)]))))
 (define (reason->string var-mapping reason)
