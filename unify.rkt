@@ -717,7 +717,8 @@
 (define (reason->string var-mapping reason)
   (define sub-formula-strs
     (map (λ (sf) (cond [(reason-formula? sf) (reason->string var-mapping sf)]
-                       [(logic-var? sf) (format "~a" (logic-var-var-name sf))]
+                       [(logic-var? sf) (format "<lv:~a>" (logic-var-var-name sf))]
+                       [(config-var? sf) (format "<cv:~a>" (config-var-name sf))]
                        [else (format "~a" sf)]))
          (reason-formula-args reason)))
   (format "(~a~a)"
