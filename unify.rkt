@@ -669,12 +669,43 @@
 
 ; failure reasons
 (struct reason-formula (op args) #:transparent #:name formula #:constructor-name make-reason-formula)
+(define false-formula (reason-formula 'false empty))
+(define true-formula (reason-formula 'true empty))
+(define (is-false-formula? formula) (equal? formula false-formula))
+(define (is-true-formula? formula) (equal? formula true-formula))
 (define (reason-formula op . args)
   (make-reason-formula op args))
 (define (get-child-reasons chp)
   (map choice-point-reason (choice-point-children chp)))
 (define (neg-formula reason)
   (reason-formula 'not reason))
+(define (simplify-reason reason)
+  (if (not (reason-formula? reason)) reason
+    (let ()
+      (define simple-subformulas (map simplify-reason (reason-formula-args reason)))
+      (match (reason-formula-op reason)
+        ['and
+         (cond
+          [(ormap is-false-formula? simple-subformulas) false-formula]
+          [(andmap is-true-formula? simple-subformulas) true-formula]
+          [else (make-reason-formula 'and (filter (negate is-true-formula?) simple-subformulas))])]
+        ['or
+         (cond
+          [(ormap is-true-formula? simple-subformulas) true-formula]
+          [(andmap is-false-formula? simple-subformulas) false-formula]
+          [else (make-reason-formula 'or (filter (negate is-false-formula?) simple-subformulas))])]
+        ['not
+         (cond
+          [(not (= (length simple-subformulas) 1)) (error "not must have exactly one subformula")]
+          [(is-true-formula? (first simple-subformulas)) false-formula]
+          [(is-false-formula? (first simple-subformulas)) true-formula]
+          [else (make-reason-formula 'not simple-subformulas)])]
+        ['=
+         (cond
+          [(not (= (length simple-subformulas) 2)) (error "= must have exactly two subformulas")]
+          [(equal? (first simple-subformulas) (second simple-subformulas)) true-formula]
+          [else (make-reason-formula '= simple-subformulas)])]
+        [else (make-reason-formula (reason-formula-op reason) simple-subformulas)]))))
 (define (reason->string var-mapping reason)
   (define sub-formula-strs
     (map (λ (sf) (cond [(reason-formula? sf) (reason->string var-mapping sf)]
@@ -686,7 +717,7 @@
           (foldl (λ (sfs res) (format " ~a~a" sfs res)) "" sub-formula-strs)))
 
 (define (print-failure-reason var-mapping reason)
-  (printf "~a\n" (reason->string var-mapping reason))
+  (printf "~a\n" (reason->string var-mapping (simplify-reason reason)))
   (print-hrule))
 
 ; config vars
