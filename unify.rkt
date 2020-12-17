@@ -685,19 +685,22 @@
   (if (not (reason-formula? reason)) reason
     (let ()
       (define simple-subformulas (map simplify-reason (reason-formula-args reason)))
+      (printf "reason-op: ~a\n" (reason-formula-op reason))
       (match (reason-formula-op reason)
         ['and
-         (cond
-          [(= 1 (length simple-subformulas)) (first simple-subformulas)]
-          [(ormap is-false-formula? simple-subformulas) false-formula]
-          [(andmap is-true-formula? simple-subformulas) true-formula]
-          [else (make-reason-formula 'and (filter (negate is-true-formula?) simple-subformulas))])]
+         (let ([non-true-sfs (filter (negate is-true-formula?) simple-subformulas)])
+           (cond
+             [(empty? non-true-sfs) true-formula]
+             [(= 1 (length non-true-sfs)) (first non-true-sfs)]
+             [(ormap is-false-formula? non-true-sfs) false-formula]
+             [else (make-reason-formula 'and non-true-sfs)]))]
         ['or
-         (cond
-          [(= 1 (length simple-subformulas)) (first simple-subformulas)]
-          [(ormap is-true-formula? simple-subformulas) true-formula]
-          [(andmap is-false-formula? simple-subformulas) false-formula]
-          [else (make-reason-formula 'or (filter (negate is-false-formula?) simple-subformulas))])]
+         (let ([non-false-sfs (filter (negate is-false-formula?) simple-subformulas)])
+           (cond
+             [(empty? non-false-sfs) false-formula]
+             [(= 1 (length non-false-sfs)) (first non-false-sfs)]
+             [(ormap is-true-formula? non-false-sfs) true-formula]
+             [else (make-reason-formula 'or non-false-sfs)]))]
         ['not
          (cond
           [(not (= (length simple-subformulas) 1)) (error "not must have exactly one subformula")]
