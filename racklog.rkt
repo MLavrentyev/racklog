@@ -413,7 +413,7 @@
 
 ; config vars
 (define-syntax-rule (define-config-var id val)
-  (define id (config-var 'id val)))
+  (define id (config-expr 'id val empty)))
 
 (define fk? (any/c . -> . none/c))
 (define sk? (fk? . -> . none/c))
@@ -425,7 +425,7 @@
 
 ; XXX Add contracts in theses macro expansions
 (provide %and %assert! %assert-after! %cut-delimiter %free-vars %is %let
-         %or %rel %which %find-all ! define-config-var config-var? config-var-value)
+         %or %rel %which %find-all ! define-config-var)
 (provide/contract
  [goal/c contract?]
  [logic-var? (any/c . -> . boolean?)]
