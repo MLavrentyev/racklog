@@ -6,6 +6,7 @@
          racket/vector
          racket/set
          racket/stream
+         racket/string
          "control.rkt")
 (provide (all-defined-out))
 
@@ -120,7 +121,7 @@
       stx (? logic-var? cons mcons box vector? hash? compound-struct? atom? else)
     [(_ v
         [(? logic-var? lv) logic-var-expr ...]
-        [(config-var name val) cfg-var-expr ...]
+        [(config-expr name val chld) cfg-var-expr ...]
         [(cons cl cr) cons-expr ...]
         [(mcons mcl mcr) mcons-expr ...]
         [(box bv) box-expr ...]
@@ -131,7 +132,7 @@
      (syntax/loc stx
        (match v
          [(? logic-var? lv) logic-var-expr ...]
-         [(config-var name val) cfg-var-expr ...]
+         [(config-expr name val chld) cfg-var-expr ...]
          [(cons cl cr) cons-expr ...]
          [(mcons mcl mcr) mcons-expr ...]
          [(box bv) box-expr ...]
@@ -141,7 +142,7 @@
          [(? atom? x) atom-expr ...]))]
     [(_ v
         [(? logic-var? lv) logic-var-expr ...]
-        [(config-var name val) cfg-var-expr ...]
+        [(config-expr name val chld) cfg-var-expr ...]
         [(cons cl cr) cons-expr ...]
         [(mcons mcl mcr) mcons-expr ...]
         [(box bv) box-expr ...]
@@ -153,7 +154,7 @@
      (syntax/loc stx
        (match v
          [(? logic-var? lv) logic-var-expr ...]
-         [(config-var name val) cfg-var-expr ...]
+         [(config-expr name val chld) cfg-var-expr ...]
          [(cons cl cr) cons-expr ...]
          [(mcons mcl mcr) mcons-expr ...]
          [(box bv) box-expr ...]
@@ -170,7 +171,7 @@
     (cond [(unbound-logic-var? s) '_]
           [(frozen-logic-var? s) s]
           [else (logic-var-val* (logic-var-val s))])]
-   [(config-var name val) val]
+   [(config-expr name val chld) val]
    [(cons l r)
     (cons (logic-var-val* l) (logic-var-val* r))]
    [(mcons l r)
@@ -194,7 +195,7 @@
                (cond [(unbound-logic-var? term) #f]
                      [(frozen-logic-var? term) #f]
                      [else (loop (logic-var-val term))])]
-              [(config-var name val) (loop val)]
+              [(config-expr name val chld) (loop val)]
               [(cons l r)
                (or (loop l) (loop r))]
               [(mcons l r)
@@ -214,7 +215,7 @@
     (cond [(unbound-logic-var? x) #f]
           [(frozen-logic-var? x) #t]
           [else (constant? (logic-var-val x))])]
-   [(config-var name val) (constant? val)]
+   [(config-expr name val chld) (constant? val)]
    [(cons l r) #f]
    [(mcons l r) #f]
    [(box v) #f]
@@ -230,7 +231,7 @@
     (cond [(unbound-logic-var? x) #f]
           [(frozen-logic-var? x) #f]
           [else (is-compound? (logic-var-val x))])]
-   [(config-var name val) (is-compound? val)]
+   [(config-expr name val chld) (is-compound? val)]
    [(cons l r) #t]
    [(mcons l r) #t]
    [(box v) #t]
@@ -246,7 +247,7 @@
     (cond [(unbound-logic-var? x) #t]
           [(frozen-logic-var? x) #f]
           [else (var? (logic-var-val x))])]
-   [(config-var name val) (var? val)]
+   [(config-expr name val chld) (var? val)]
    [(cons l r) (or (var? l) (var? r))]
    [(mcons l r) (or (var? l) (var? r))]
    [(box v) (var? v)]
@@ -268,7 +269,7 @@
                      (lambda ()
                        (freeze-ref s)))
           (loop (logic-var-val s)))]
-     [(config-var name val) (config-var name (loop val))]
+     [(config-expr name val chld) (config-expr name (loop val))]
      [(cons l r)
       (cons (loop l) (loop r))]
      [(mcons l r)
@@ -289,7 +290,7 @@
     (cond [(unbound-logic-var? f) f]
           [(frozen-logic-var? f) (thaw-frozen-ref f)]
           [else (melt (logic-var-val f))])]
-   [(config-var name val) (config-var name (melt val))]
+   [(config-expr name val chld) (config-expr name (melt val))]
    [(cons l r)
     (cons (melt l) (melt r))]
    [(mcons l r)
@@ -312,7 +313,7 @@
             [(frozen-logic-var? f)
              (hash-ref! dict f (_ (gensym)))]
             [else (loop (logic-var-val f))])]
-     [(config-var name val) (config-var name (loop val))]
+     [(config-expr name val chld) (config-expr name (loop val))]
      [(cons l r)
       (cons (loop l) (loop r))]
      [(mcons l r)
@@ -349,14 +350,14 @@
                         [else (ident? x (logic-var-val y))])]
                  [else #f])]
           [else (ident? (logic-var-val x) y)])]
-   [(config-var x-name x-val)
+   [(config-expr x-name x-val x-chld)
     (uni-match
      y
      [(? logic-var? y)
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-var y-name y-val) (ident? x-val y-val)]
+     [(config-expr y-name y-val y-chld) (ident? x-val y-val)]
      [(cons yl yr) (ident? x-val (cons yl yr))]
      [(mcons yl yr) (ident? x-val (mcons yl yr))]
      [(box yv) (ident? x-val (box yv))]
@@ -371,7 +372,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-var name yv) (ident? x yv)]
+     [(config-expr name yv ycs) (ident? x yv)]
      [(cons yl yr)
       (and (ident? xl yl) (ident? xr yr))]
      [(mcons yl yr) #f]
@@ -387,7 +388,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-var name yv) (ident? x yv)]
+     [(config-expr name yv ycs) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr)
       (and (ident? xl yl) (ident? xr yr))]
@@ -403,7 +404,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-var name yv) (ident? x yv)]
+     [(config-expr name yv ycs) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box yv) (ident? xv yv)]
@@ -418,7 +419,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-var name yv) (ident? x yv)]
+     [(config-expr name yv ycs) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box v) #f]
@@ -439,7 +440,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-var name yv) (ident? x yv)]
+     [(config-expr name yv ycs) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box v) #f]
@@ -460,7 +461,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-var name yv) (ident? x yv)]
+     [(config-expr name yv ycs) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box v) #f]
@@ -476,7 +477,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-var name yv) (ident? x yv)]
+     [(config-expr name yv ycs) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box v) #f]
@@ -586,7 +587,7 @@
   (uni-match
    x
    [(? logic-var? x) #f]
-   [(config-var name val) (answer-value? val)]
+   [(config-expr name val chld) (answer-value? val)]
    [(cons l r) (and (answer-value? l) (answer-value? r))]
    [(mcons l r) (and (answer-value? l) (answer-value? r))]
    [(box v) (answer-value? v)]
@@ -604,7 +605,7 @@
   (uni-match
    x
    [(? logic-var? x) #t]
-   [(config-var name val) (unifiable? val)]
+   [(config-expr name val chld) (unifiable? val)]
    [(cons l r) (and (unifiable? l) (unifiable? r))]
    [(mcons l r) (and (unifiable? l) (unifiable? r))]
    [(box v) (unifiable? v)]
@@ -704,14 +705,14 @@
          (cond
           [(not (= (length simple-subformulas) 2)) (error "= must have exactly two subformulas")]
           [(equal? (first simple-subformulas) (second simple-subformulas)) true-formula]
-          [(andmap (negate config-var?) simple-subformulas) false-formula]
+          [(andmap (negate config-expr?) simple-subformulas) false-formula]
           [else (make-reason-formula '= simple-subformulas)])]
         [else (make-reason-formula (reason-formula-op reason) simple-subformulas)]))))
 (define (reason->string var-mapping reason)
   (define sub-formula-strs
     (map (λ (sf) (cond [(reason-formula? sf) (reason->string var-mapping sf)]
                        [(logic-var? sf) (format "<lv:~a>" (logic-var-var-name sf))]
-                       [(config-var? sf) (format "<cv:~a>" (config-var-name sf))]
+                       [(config-expr? sf) (config-expr->string sf)]
                        [else (format "~a" sf)]))
          (reason-formula-args reason)))
   (format "(~a~a)"
@@ -719,8 +720,30 @@
           (foldl (λ (sfs res) (format " ~a~a" sfs res)) "" sub-formula-strs)))
 
 (define (print-failure-reason var-mapping reason)
-  (printf "~a\n" (reason->string var-mapping (simplify-reason reason)))
+  (printf "~a\n" (reason->string var-mapping reason #;(simplify-reason reason)))
   (print-hrule))
 
 ; config vars
-(struct config-var (name value) #:transparent)
+(struct config-expr (name value children) #:transparent)
+(define (format-list lst)
+  (apply format (string-join (make-list (length lst) "~a") " ") lst))
+(define (config-expr->string ce)
+  (define children (config-expr-children ce))
+  (if (empty? children)
+      (format "<cv:~a>" (config-expr-name ce))
+      (format "(~a)" (format-list children))))
+(define (expr-name expr)
+  (if (config-expr? expr)
+      (config-expr-name expr)
+      expr))
+(define (expr-value expr)
+  (if (config-expr? expr)
+      (config-expr-value expr)
+      expr))
+(define-syntax-rule (build-expr child ...)
+  (if (ormap config-expr? (list child ...))
+      (config-expr
+        `(,(expr-name child) ...)
+        ((expr-value child) ...)
+        (list child ...))
+      (child ...)))

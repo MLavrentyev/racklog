@@ -163,17 +163,17 @@
      (syntax/loc stx (quote-syntax d))]
     [(_ (with-continuation-mark e1 e2 e3) fk)
      (syntax/loc stx (with-continuation-mark
-                         (%is/fk e1 fk)
+                       (%is/fk e1 fk)
                        (%is/fk e2 fk)
                        (%is/fk e3 fk)))]
     [(_ (#%plain-app e ...) fk)
-     (syntax/loc stx (#%plain-app (%is/fk e fk) ...))]
+     (syntax/loc stx (build-expr (%is/fk e fk) ...))]
     [(_ x fk)
      (syntax/loc stx
-       (if (and (logic-var? x) (unbound-logic-var? x))
-           (fk (reason-formula 'is-fk-unsure)) ; TODO: figure out this reason
-           (logic-var-val* x)))]
-
+       (cond
+        [(and (logic-var? x) (unbound-logic-var? x)) (fk (reason-formula 'is-fk-unsure))] ; TODO: figure this reason out
+        [(config-expr? x) x]
+        [else (logic-var-val* x)]))]
     ))
 
 (define ((make-binary-arithmetic-relation f) x y)
