@@ -488,79 +488,83 @@
 
 (define ((unify t1 t2) sk)
   (lambda (fk)
-    ; note: t1, t2 may be config-vars
+    ; note: t1, t2 may be config-exprs
     (define (unify1 t1 t2 next)
-      (cond [(eqv? t1 t2) (next)]
-            [(logic-var? t1)
-             (cond [(unbound-logic-var? t1)
-                    (cond [(occurs-in? t1 t2)
+      (define t1-v (expr-value t1))
+      (define t2-v (expr-value t2))
+      (cond [(eqv? t1-v t2-v) (next)]
+            [(logic-var? t1-v)
+             (cond [(unbound-logic-var? t1-v)
+                    (cond [(occurs-in? t1-v t2-v)
                            (fk (reason-formula 'occurs-in? t1 t2))]
                           [else
-                           (let/logic-var ([t1 t2]) ; TODO: need to keep config-var wrapper in this bit
+                           (let/logic-var ([t1-v t2]) ; TODO: need to keep config-expr wrapper in this bit
                              (next))])]
-                   [(frozen-logic-var? t1)
-                    (cond [(logic-var? t2)
-                           (cond [(unbound-logic-var? t2)
+                   [(frozen-logic-var? t1-v)
+                    (cond [(logic-var? t2-v)
+                           (cond [(unbound-logic-var? t2-v)
                                   (unify1 t2 t1 next)]
-                                 [(frozen-logic-var? t2)
+                                 [(frozen-logic-var? t2-v)
                                   (fk (neg-formula (reason-formula '= t1 t2)))]
                                  [else
-                                  (unify1 t1 (logic-var-val t2) next)])]
+                                  (unify1 t1 (logic-var-val t2-v) next)])]
                           [else (fk (neg-formula (reason-formula '= t1 t2)))])]
                    [else
-                    (unify1 (logic-var-val t1) t2 next)])]
-            [(logic-var? t2) (unify1 t2 t1 next)]
-            [(and (pair? t1) (pair? t2))
-             (unify1 (car t1) (car t2)
-                     (λ () (unify1 (cdr t1) (cdr t2) next)))]
-            [(and (mpair? t1) (mpair? t2))
-             (unify1 (mcar t1) (mcar t2)
-                     (λ () (unify1 (mcdr t1) (mcdr t2) next)))]
-            [(and (box? t1) (box? t2))
-             (unify1 (unbox t1) (unbox t2) next)]
-            [(and (vector? t1) (vector? t2))
-             (if (= (vector-length t1)
-                    (vector-length t2))
-                 (let loop ([v1s (sequence->stream (in-vector t1))]
-                            [v2s (sequence->stream (in-vector t2))])
-                   (if (stream-empty? v1s)
+                    (unify1 (logic-var-val t1-v) t2 next)])]
+            [(logic-var? t2-v) (unify1 t2 t1 next)]
+
+            [(and (pair? t1-v) (pair? t2-v))
+             (unify1 (build-expr car t1) (build-expr car t2)
+                     (λ () (unify1 (build-expr cdr t1) (build-expr cdr t2) next)))]
+            [(and (mpair? t1-v) (mpair? t2-v))
+             (unify1 (build-expr mcar t1) (build-expr mcar t2)
+                     (λ () (unify1 (build-expr mcdr t1) (build-expr mcdr t2) next)))]
+            [(and (box? t1-v) (box? t2-v))
+             (unify1 (build-expr unbox t1) (build-expr unbox t2) next)]
+            [(and (vector? t1-v) (vector? t2-v))
+             (if (= (vector-length t1-v)
+                    (vector-length t2-v))
+                 (let loop ([v1s (build-expr sequence->stream (build-expr in-vector t1))]
+                            [v2s (build-expr sequence->stream (build-expr in-vector t2))])
+                   (if (expr-value (build-expr stream-empty? v1s))
                        (next)
-                       (unify1 (stream-first v1s)
-                               (stream-first v2s)
-                               (λ () (loop (stream-rest v1s)
-                                           (stream-rest v2s))))))
+                       (unify1 (build-expr stream-first v1s)
+                               (build-expr stream-first v2s)
+                               (λ () (loop (build-expr stream-rest v1s)
+                                           (build-expr stream-rest v2s))))))
                  (fk (neg-formula (reason-formula '= (reason-formula 'vector-length t1)
                                                      (reason-formula 'vector-length t2)))))]
-            [(and (hash? t1) (hash? t2))
-             (if (and (same-hash-kind? t1 t2)
-                      (= (hash-count t1) (hash-count t2)))
-                 (let loop ([xs (sequence->stream (in-hash t1))])
-                   (if (stream-empty? xs)
+            [(and (hash? t1-v) (hash? t2-v))
+             (if (and (same-hash-kind? t1-v t2-v)
+                      (= (hash-count t1-v) (hash-count t2-v)))
+                 (let loop ([xs (build-expr sequence->stream (build-expr in-hash-pairs t1))])
+                   (if (expr-value (build-expr stream-empty? xs))
                        (next)
-                       (let-values ([(xk xv) (stream-first xs)])
-                         (if (hash-has-key? t2 xk)
+                       (let ([xk (build-expr car (build-expr stream-first xs))]
+                             [xv (build-expr cdr (build-expr stream-first xs))])
+                         (if (expr-value (build-expr hash-has-key? t2 xk))
                              (unify1 xv
-                                     (hash-ref t2 xk)
-                                     (λ () (loop (stream-rest xs))))
+                                     (build-expr hash-ref t2 xk)
+                                     (λ () (loop (build-expr stream-rest xs))))
                              (fk (reason-formula 'and (reason-formula 'hash-has-key? t1 xk)
                                                       (neg-formula (reason-formula 'hash-has-key? t2 xk))))))))
                  (fk (reason-formula 'or (neg-formula (reason-formula 'same-hash-kind? t1 t2))
                                          (neg-formula (reason-formula '= (reason-formula 'hash-count t1)
                                                                          (reason-formula 'hash-count t2))))))]
-            [(and (compound-struct? t1) (compound-struct? t2))
-             (if (compound-struct-same? t1 t2)
-                 (let loop ([e1s (sequence->stream (in-compound-struct t1))]
-                            [e2s (sequence->stream (in-compound-struct t2))])
-                   (if (stream-empty? e1s)
+            [(and (compound-struct? t1-v) (compound-struct? t2-v))
+             (if (compound-struct-same? t1-v t2-v)
+                 (let loop ([e1s (build-expr sequence->stream (build-expr in-compound-struct t1))]
+                            [e2s (build-expr sequence->stream (build-expr in-compound-struct t2))])
+                   (if (expr-value (build-expr stream-empty? e1s))
                        (next)
-                       (unify1 (stream-first e1s)
-                               (stream-first e2s)
-                               (λ () (loop (stream-rest e1s)
-                                           (stream-rest e2s))))))
+                       (unify1 (build-expr stream-first e1s)
+                               (build-expr stream-first e2s)
+                               (λ () (loop (build-expr stream-rest e1s)
+                                           (build-expr stream-rest e2s))))))
                  (fk (neg-formula (reason-formula 'compound-struct-same? t1 t2))))]
-            [(and (atom? t1) (atom? t2))
-             (if (equal? t1 t2) (next) (fk (neg-formula (reason-formula '= t1 t2))))]
-            [else (fk (reason-formula 'todo-unify-else))])) ; TODO: reason here
+            [(and (atom? t1-v) (atom? t2-v))
+             (if (equal? t1-v t2-v) (next) (fk (neg-formula (reason-formula '= t1 t2))))]
+            [else (fk (reason-formula 'todo-unify-else))])) ; TODO: reason here (it's because of constructor mismatch)
     (unify1 t1 t2 (λ () (sk fk)))))
 
 (define-syntax-rule (or* x f ...)
