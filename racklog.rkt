@@ -170,10 +170,9 @@
      (syntax/loc stx (build-expr (%is/fk e fk) ...))]
     [(_ x fk)
      (syntax/loc stx
-       (cond
-        [(and (logic-var? x) (unbound-logic-var? x)) (fk (reason-formula 'is-fk-unsure))] ; TODO: figure this reason out
-        [(config-expr? x) x]
-        [else (logic-var-val* x)]))]
+       (if (and (logic-var? x) (unbound-logic-var? x))
+           (fk (reason-formula 'is-fk-unsure)) ; TODO: figure this reason out
+           (logic-var-val* x)))]
     ))
 
 (define ((make-binary-arithmetic-relation f) x y)

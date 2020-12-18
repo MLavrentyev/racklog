@@ -32,7 +32,6 @@
   (%rel (c p)
     ((c p) (%father-of p c))))
 
-#|
 ; example with a configuration variable
 (define-config-var generations 2)
 
@@ -44,4 +43,3 @@
 (define %recent-descendant-of
   (%rel (d a)
     ((d a) (%nth-descendant-of d a generations))))
-|#

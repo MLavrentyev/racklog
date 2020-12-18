@@ -171,7 +171,7 @@
     (cond [(unbound-logic-var? s) '_]
           [(frozen-logic-var? s) s]
           [else (logic-var-val* (logic-var-val s))])]
-   [(config-expr name val chld) val]
+   [(config-expr name val chld) v]
    [(cons l r)
     (cons (logic-var-val* l) (logic-var-val* r))]
    [(mcons l r)
