@@ -498,7 +498,7 @@
                     (cond [(occurs-in? t1-v t2-v)
                            (fk (reason-formula 'occurs-in? t1 t2))]
                           [else
-                           (let/logic-var ([t1-v t2]) ; TODO: need to keep config-expr wrapper in this bit
+                           (let/logic-var ([t1-v t2])
                              (next))])]
                    [(frozen-logic-var? t1-v)
                     (cond [(logic-var? t2-v)
@@ -628,7 +628,8 @@
          [reason #:mutable #:auto]
          [fail-return-point #:mutable #:auto]
          [choice-type #:mutable #:auto])
-        #:auto-value #f)
+        #:auto-value #f
+        #:transparent)
 (define top-choice-point (choice-point #f empty #f #f))
 (define curr-choice-point top-choice-point)
 (define (reset-choice-points)
@@ -654,7 +655,9 @@
   (printf "~a(~a: ~a)~a~a\n"
           indent
           (get-logic-var-name (choice-point-key choice-node))
-          (get-logic-var-name (choice-point-value choice-node))
+          (if (config-expr? (choice-point-value choice-node))
+              (config-expr->string (choice-point-value choice-node))
+              (get-logic-var-name (choice-point-value choice-node)))
           (if (choice-point-fail-return-point choice-node)
               " <choice>"
               "")
