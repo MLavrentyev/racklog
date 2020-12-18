@@ -732,10 +732,16 @@
 (define (format-list lst)
   (apply format (string-join (make-list (length lst) "~a") " ") lst))
 (define (config-expr->string ce)
-  (define children (config-expr-children ce))
-  (if (empty? children)
-      (format "<cv:~a>" (config-expr-name ce))
-      (format "(~a)" (format-list children))))
+  (cond
+   [(config-expr? ce)
+    (begin
+      (define children (map config-expr->string (config-expr-children ce)))
+      (if (empty? children)
+        (format "<cv:~a>" (config-expr-name ce))
+        (format "(~a)" (format-list children))))]
+   [(procedure? ce) (object-name ce)]
+   [else ce]))
+
 (define (expr-name expr)
   (if (config-expr? expr)
       (config-expr-name expr)
