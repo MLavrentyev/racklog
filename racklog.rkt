@@ -133,45 +133,46 @@
              (((%= v (%is/fk fe __fk)) __sk) __fk)))))]))
 (define-syntax (%is/fk stx)
   (kernel-syntax-case stx #f
-    [(_ (#%plain-lambda fmls e ...) fk)
-     (syntax/loc stx (#%plain-lambda fmls (%is/fk e fk) ...))]
+    [(_ (#%plain-lambda fmls e ...) fk) ; TODO: deal with these other cases
+     (syntax/loc stx (build-expr #%plain-lambda fmls (%is/fk e fk) ...))]
     [(_ (case-lambda [fmls e ...] ...) fk)
-     (syntax/loc stx (case-lambda [fmls (%is/fk e fk) ...] ...))]
+     (syntax/loc stx (case-lambda [fmls (%is/fk e fk) ...] ...))] ; TODO: how to build-expr this?
     [(_ (if e1 e2 e3) fk)
-     (syntax/loc stx (if (%is/fk e1 fk)
-                         (%is/fk e2 fk)
-                         (%is/fk e3 fk)))]
+     (syntax/loc stx (build-expr if
+                                (%is/fk e1 fk)
+                                (%is/fk e2 fk)
+                                (%is/fk e3 fk)))]
     [(_ (begin e ...) fk)
-     (syntax/loc stx (begin (%is/fk e fk) ...))]
+     (syntax/loc stx (build-expr begin (%is/fk e fk) ...))]
     [(_ (begin0 e ...) fk)
-     (syntax/loc stx (begin0 (%is/fk e fk) ...))]
-    [(_ (let-values ([(v ...) ve] ...)
+     (syntax/loc stx (build-expr begin0 (%is/fk e fk) ...))]
+    [(_ (let-values ([(v ...) ve] ...) ; TODO: how to build-expr this?
           be ...) fk)
      (syntax/loc stx
        (let-values ([(v ...) (%is/fk ve fk)] ...)
          (%is/fk be fk) ...))]
-    [(_ (letrec-values ([(v ...) ve] ...)
+    [(_ (letrec-values ([(v ...) ve] ...) ; TODO: how to build-expr this?
           be ...) fk)
      (syntax/loc stx
        (letrec-values ([(v ...) (%is/fk ve fk)] ...)
          (%is/fk be fk) ...))]
     [(_ (set! i e) fk)
-     (syntax/loc stx (set! i (%is/fk e fk)))]
+     (syntax/loc stx (build-expr set! i (%is/fk e fk)))]
     [(_ (quote d) fk)
-     (syntax/loc stx (quote d))]
+     (syntax/loc stx (build-expr quote d))]
     [(_ (quote-syntax d) fk)
-     (syntax/loc stx (quote-syntax d))]
+     (syntax/loc stx (build-expr quote-syntax d))]
     [(_ (with-continuation-mark e1 e2 e3) fk)
-     (syntax/loc stx (with-continuation-mark
+     (syntax/loc stx (build-expr with-continuation-mark
                        (%is/fk e1 fk)
                        (%is/fk e2 fk)
                        (%is/fk e3 fk)))]
     [(_ (#%plain-app e ...) fk)
-     (syntax/loc stx (build-expr (%is/fk e fk) ...))]
+     (syntax/loc stx (build-expr #%plain-app (%is/fk e fk) ...))]
     [(_ x fk)
      (syntax/loc stx
        (if (and (logic-var? x) (unbound-logic-var? x))
-           (fk (reason-formula 'is-fk-unsure)) ; TODO: figure this reason out
+           (fk (reason-formula 'is-value-logic-var-unbound)) ; TODO: write the reason (this is because we can't is-unify w/ unbound logic-var)
            (logic-var-val* x)))]
     ))
 
@@ -335,11 +336,12 @@
        (%let (v ...)
           (((logic-var-val* g)
             (lambda (fk)
-              (let ([var-mapping (list (cons 'v (logic-var-val* v)) ...)])
+              (let* ([var-mapping (list (cons 'v (logic-var-val* v)) ...)]
+                     [var-val-mapping (list (cons 'v (expr-value (logic-var-val* v))) ...)])
                 (print-search-tree var-mapping)
                 (set-box! *more-fk* fk)
                 (set-box! *prev-soln* (reason-formula 'and (reason-formula '= v (logic-var-val* v)) ...))
-                (abort-to-racklog-prompt var-mapping))))
+                (abort-to-racklog-prompt var-val-mapping))))
             (lambda (reason)
               (let ([var-mapping (list (cons 'v (logic-var-val* v)) ...)])
                 (print-search-tree var-mapping)
@@ -412,7 +414,7 @@
 
 ; config vars
 (define-syntax-rule (define-config-var id val)
-  (define id (config-expr 'id val empty)))
+  (define id (config-expr 'id val empty (λ () val))))
 
 (define fk? (any/c . -> . none/c))
 (define sk? (fk? . -> . none/c))

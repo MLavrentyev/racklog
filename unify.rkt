@@ -121,7 +121,7 @@
       stx (? logic-var? cons mcons box vector? hash? compound-struct? atom? else)
     [(_ v
         [(? logic-var? lv) logic-var-expr ...]
-        [(config-expr name val chld) cfg-var-expr ...]
+        [(config-expr name val chld calc) cfg-var-expr ...]
         [(cons cl cr) cons-expr ...]
         [(mcons mcl mcr) mcons-expr ...]
         [(box bv) box-expr ...]
@@ -132,7 +132,7 @@
      (syntax/loc stx
        (match v
          [(? logic-var? lv) logic-var-expr ...]
-         [(config-expr name val chld) cfg-var-expr ...]
+         [(config-expr name val chld calc) cfg-var-expr ...]
          [(cons cl cr) cons-expr ...]
          [(mcons mcl mcr) mcons-expr ...]
          [(box bv) box-expr ...]
@@ -142,7 +142,7 @@
          [(? atom? x) atom-expr ...]))]
     [(_ v
         [(? logic-var? lv) logic-var-expr ...]
-        [(config-expr name val chld) cfg-var-expr ...]
+        [(config-expr name val chld calc) cfg-var-expr ...]
         [(cons cl cr) cons-expr ...]
         [(mcons mcl mcr) mcons-expr ...]
         [(box bv) box-expr ...]
@@ -154,7 +154,7 @@
      (syntax/loc stx
        (match v
          [(? logic-var? lv) logic-var-expr ...]
-         [(config-expr name val chld) cfg-var-expr ...]
+         [(config-expr name val chld calc) cfg-var-expr ...]
          [(cons cl cr) cons-expr ...]
          [(mcons mcl mcr) mcons-expr ...]
          [(box bv) box-expr ...]
@@ -171,7 +171,7 @@
     (cond [(unbound-logic-var? s) '_]
           [(frozen-logic-var? s) s]
           [else (logic-var-val* (logic-var-val s))])]
-   [(config-expr name val chld) v]
+   [(config-expr name val chld calc) v]
    [(cons l r)
     (cons (logic-var-val* l) (logic-var-val* r))]
    [(mcons l r)
@@ -195,7 +195,7 @@
                (cond [(unbound-logic-var? term) #f]
                      [(frozen-logic-var? term) #f]
                      [else (loop (logic-var-val term))])]
-              [(config-expr name val chld) (loop val)]
+              [(config-expr name val chld calc) (loop val)]
               [(cons l r)
                (or (loop l) (loop r))]
               [(mcons l r)
@@ -215,7 +215,7 @@
     (cond [(unbound-logic-var? x) #f]
           [(frozen-logic-var? x) #t]
           [else (constant? (logic-var-val x))])]
-   [(config-expr name val chld) (constant? val)]
+   [(config-expr name val chld calc) (constant? val)]
    [(cons l r) #f]
    [(mcons l r) #f]
    [(box v) #f]
@@ -231,7 +231,7 @@
     (cond [(unbound-logic-var? x) #f]
           [(frozen-logic-var? x) #f]
           [else (is-compound? (logic-var-val x))])]
-   [(config-expr name val chld) (is-compound? val)]
+   [(config-expr name val chld calc) (is-compound? val)]
    [(cons l r) #t]
    [(mcons l r) #t]
    [(box v) #t]
@@ -247,7 +247,7 @@
     (cond [(unbound-logic-var? x) #t]
           [(frozen-logic-var? x) #f]
           [else (var? (logic-var-val x))])]
-   [(config-expr name val chld) (var? val)]
+   [(config-expr name val chld calc) (var? val)]
    [(cons l r) (or (var? l) (var? r))]
    [(mcons l r) (or (var? l) (var? r))]
    [(box v) (var? v)]
@@ -269,7 +269,7 @@
                      (lambda ()
                        (freeze-ref s)))
           (loop (logic-var-val s)))]
-     [(config-expr name val chld) (config-expr name (loop val))]
+     [(config-expr name val chld calc) (config-expr name (loop val) chld calc)]
      [(cons l r)
       (cons (loop l) (loop r))]
      [(mcons l r)
@@ -290,7 +290,7 @@
     (cond [(unbound-logic-var? f) f]
           [(frozen-logic-var? f) (thaw-frozen-ref f)]
           [else (melt (logic-var-val f))])]
-   [(config-expr name val chld) (config-expr name (melt val))]
+   [(config-expr name val chld calc) (config-expr name (melt val) chld calc)]
    [(cons l r)
     (cons (melt l) (melt r))]
    [(mcons l r)
@@ -313,7 +313,7 @@
             [(frozen-logic-var? f)
              (hash-ref! dict f (_ (gensym)))]
             [else (loop (logic-var-val f))])]
-     [(config-expr name val chld) (config-expr name (loop val))]
+     [(config-expr name val chld calc) (config-expr name (loop val) chld calc)]
      [(cons l r)
       (cons (loop l) (loop r))]
      [(mcons l r)
@@ -350,14 +350,14 @@
                         [else (ident? x (logic-var-val y))])]
                  [else #f])]
           [else (ident? (logic-var-val x) y)])]
-   [(config-expr x-name x-val x-chld)
+   [(config-expr x-name x-val x-chld x-calc)
     (uni-match
      y
      [(? logic-var? y)
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-expr y-name y-val y-chld) (ident? x-val y-val)]
+     [(config-expr y-name y-val y-chld y-calc) (ident? x-val y-val)]
      [(cons yl yr) (ident? x-val (cons yl yr))]
      [(mcons yl yr) (ident? x-val (mcons yl yr))]
      [(box yv) (ident? x-val (box yv))]
@@ -372,7 +372,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-expr name yv ycs) (ident? x yv)]
+     [(config-expr name yv ycs yc) (ident? x yv)]
      [(cons yl yr)
       (and (ident? xl yl) (ident? xr yr))]
      [(mcons yl yr) #f]
@@ -388,7 +388,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-expr name yv ycs) (ident? x yv)]
+     [(config-expr name yv ycs yc) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr)
       (and (ident? xl yl) (ident? xr yr))]
@@ -404,7 +404,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-expr name yv ycs) (ident? x yv)]
+     [(config-expr name yv ycs yc) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box yv) (ident? xv yv)]
@@ -419,7 +419,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-expr name yv ycs) (ident? x yv)]
+     [(config-expr name yv ycs yc) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box v) #f]
@@ -440,7 +440,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-expr name yv ycs) (ident? x yv)]
+     [(config-expr name yv ycs yc) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box v) #f]
@@ -461,7 +461,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-expr name yv ycs) (ident? x yv)]
+     [(config-expr name yv ycs yc) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box v) #f]
@@ -477,7 +477,7 @@
       (cond [(unbound-logic-var? y) #f]
             [(frozen-logic-var? y) #f]
             [else (ident? x (logic-var-val y))])]
-     [(config-expr name yv ycs) (ident? x yv)]
+     [(config-expr name yv ycs yc) (ident? x yv)]
      [(cons yl yr) #f]
      [(mcons yl yr) #f]
      [(box v) #f]
@@ -514,38 +514,38 @@
             [(logic-var? t2-v) (unify1 t2 t1 next)]
 
             [(and (pair? t1-v) (pair? t2-v))
-             (unify1 (build-expr car t1) (build-expr car t2)
-                     (λ () (unify1 (build-expr cdr t1) (build-expr cdr t2) next)))]
+             (unify1 (app-expr car t1) (app-expr car t2)
+                     (λ () (unify1 (app-expr cdr t1) (app-expr cdr t2) next)))]
             [(and (mpair? t1-v) (mpair? t2-v))
-             (unify1 (build-expr mcar t1) (build-expr mcar t2)
-                     (λ () (unify1 (build-expr mcdr t1) (build-expr mcdr t2) next)))]
+             (unify1 (app-expr mcar t1) (app-expr mcar t2)
+                     (λ () (unify1 (app-expr mcdr t1) (app-expr mcdr t2) next)))]
             [(and (box? t1-v) (box? t2-v))
-             (unify1 (build-expr unbox t1) (build-expr unbox t2) next)]
+             (unify1 (app-expr unbox t1) (app-expr unbox t2) next)]
             [(and (vector? t1-v) (vector? t2-v))
              (if (= (vector-length t1-v)
                     (vector-length t2-v))
-                 (let loop ([v1s (build-expr sequence->stream (build-expr in-vector t1))]
-                            [v2s (build-expr sequence->stream (build-expr in-vector t2))])
-                   (if (expr-value (build-expr stream-empty? v1s))
+                 (let loop ([v1s (app-expr sequence->stream (app-expr in-vector t1))]
+                            [v2s (app-expr sequence->stream (app-expr in-vector t2))])
+                   (if (expr-value (app-expr stream-empty? v1s))
                        (next)
-                       (unify1 (build-expr stream-first v1s)
-                               (build-expr stream-first v2s)
-                               (λ () (loop (build-expr stream-rest v1s)
-                                           (build-expr stream-rest v2s))))))
+                       (unify1 (app-expr stream-first v1s)
+                               (app-expr stream-first v2s)
+                               (λ () (loop (app-expr stream-rest v1s)
+                                           (app-expr stream-rest v2s))))))
                  (fk (neg-formula (reason-formula '= (reason-formula 'vector-length t1)
                                                      (reason-formula 'vector-length t2)))))]
             [(and (hash? t1-v) (hash? t2-v))
              (if (and (same-hash-kind? t1-v t2-v)
                       (= (hash-count t1-v) (hash-count t2-v)))
-                 (let loop ([xs (build-expr sequence->stream (build-expr in-hash-pairs t1))])
-                   (if (expr-value (build-expr stream-empty? xs))
+                 (let loop ([xs (app-expr sequence->stream (app-expr in-hash-pairs t1))])
+                   (if (expr-value (app-expr stream-empty? xs))
                        (next)
-                       (let ([xk (build-expr car (build-expr stream-first xs))]
-                             [xv (build-expr cdr (build-expr stream-first xs))])
-                         (if (expr-value (build-expr hash-has-key? t2 xk))
+                       (let ([xk (app-expr car (app-expr stream-first xs))]
+                             [xv (app-expr cdr (app-expr stream-first xs))])
+                         (if (expr-value (app-expr hash-has-key? t2 xk))
                              (unify1 xv
-                                     (build-expr hash-ref t2 xk)
-                                     (λ () (loop (build-expr stream-rest xs))))
+                                     (app-expr hash-ref t2 xk)
+                                     (λ () (loop (app-expr stream-rest xs))))
                              (fk (reason-formula 'and (reason-formula 'hash-has-key? t1 xk)
                                                       (neg-formula (reason-formula 'hash-has-key? t2 xk))))))))
                  (fk (reason-formula 'or (neg-formula (reason-formula 'same-hash-kind? t1 t2))
@@ -553,14 +553,14 @@
                                                                          (reason-formula 'hash-count t2))))))]
             [(and (compound-struct? t1-v) (compound-struct? t2-v))
              (if (compound-struct-same? t1-v t2-v)
-                 (let loop ([e1s (build-expr sequence->stream (build-expr in-compound-struct t1))]
-                            [e2s (build-expr sequence->stream (build-expr in-compound-struct t2))])
-                   (if (expr-value (build-expr stream-empty? e1s))
+                 (let loop ([e1s (app-expr sequence->stream (app-expr in-compound-struct t1))]
+                            [e2s (app-expr sequence->stream (app-expr in-compound-struct t2))])
+                   (if (expr-value (app-expr stream-empty? e1s))
                        (next)
-                       (unify1 (build-expr stream-first e1s)
-                               (build-expr stream-first e2s)
-                               (λ () (loop (build-expr stream-rest e1s)
-                                           (build-expr stream-rest e2s))))))
+                       (unify1 (app-expr stream-first e1s)
+                               (app-expr stream-first e2s)
+                               (λ () (loop (app-expr stream-rest e1s)
+                                           (app-expr stream-rest e2s))))))
                  (fk (neg-formula (reason-formula 'compound-struct-same? t1 t2))))]
             [(and (atom? t1-v) (atom? t2-v))
              (if (equal? t1-v t2-v) (next) (fk (neg-formula (reason-formula '= t1 t2))))]
@@ -591,7 +591,7 @@
   (uni-match
    x
    [(? logic-var? x) #f]
-   [(config-expr name val chld) (answer-value? val)]
+   [(config-expr name val chld calc) (answer-value? val)]
    [(cons l r) (and (answer-value? l) (answer-value? r))]
    [(mcons l r) (and (answer-value? l) (answer-value? r))]
    [(box v) (answer-value? v)]
@@ -609,7 +609,7 @@
   (uni-match
    x
    [(? logic-var? x) #t]
-   [(config-expr name val chld) (unifiable? val)]
+   [(config-expr name val chld calc) (unifiable? val)]
    [(cons l r) (and (unifiable? l) (unifiable? r))]
    [(mcons l r) (and (unifiable? l) (unifiable? r))]
    [(box v) (unifiable? v)]
@@ -727,11 +727,11 @@
           (foldl (λ (sfs res) (format " ~a~a" sfs res)) "" sub-formula-strs)))
 
 (define (print-failure-reason var-mapping reason)
-  (printf "~a\n" (reason->string var-mapping (simplify-reason reason)))
+  (printf "~a\n" (reason->string var-mapping reason #;(simplify-reason reason)))
   (print-hrule))
 
 ; config vars
-(struct config-expr (name value children) #:transparent)
+(struct config-expr (name value children calculator) #:transparent)
 (define (format-list lst)
   (apply format (string-join (make-list (length lst) "~a") " ") lst))
 (define (config-expr->string ce)
@@ -739,24 +739,36 @@
    [(config-expr? ce)
     (begin
       (define children (map config-expr->string (config-expr-children ce)))
+      (define name (config-expr-name ce))
       (if (empty? children)
-        (format "<cv:~a>" (config-expr-name ce))
-        (format "(~a)" (format-list children))))]
+        (format "<cv:~a>" name)
+        (format "(~a~a)"
+                (if (or (equal? name '#%app) (equal? name '#%plain-app)) "" (format "~a " name))
+                (format-list children))))]
    [(procedure? ce) (object-name ce)]
    [else ce]))
 
 (define (expr-name expr)
-  (if (config-expr? expr)
-      (config-expr-name expr)
-      expr))
+  (cond
+   [(config-expr? expr) (config-expr-name expr)]
+   [(procedure? expr) (object-name expr)]
+   [else expr]))
 (define (expr-value expr)
   (if (config-expr? expr)
       (config-expr-value expr)
       expr))
-(define-syntax-rule (build-expr child ...)
-  (if (ormap config-expr? (list child ...))
-      (config-expr
-        `(,(expr-name child) ...)
-        ((expr-value child) ...)
-        (list child ...))
-      (child ...)))
+
+(define-syntax (build-expr stx)
+  (syntax-case stx ()
+    [(_ op child ...)
+     (with-syntax ([(calc-param ...) (generate-temporaries #'(child ...))])
+       #'(if (ormap config-expr? (list child ...))
+             (config-expr
+               'op
+               (op (expr-value child) ...)
+               (list child ...)
+               (λ (calc-param ...) (op calc-param ...)))
+             (op child ...)))]))
+
+(define-syntax-rule (app-expr child ...)
+  (build-expr #%app child ...))
