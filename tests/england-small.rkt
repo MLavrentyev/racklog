@@ -48,3 +48,5 @@
 
 
 (%which (x) (%is x (if mystery-bool generations (- generations 1))) (%is x generations))
+(define-config-var n 2)
+(%which (x) (%is x n) (%<= x (/ n 2)))
