@@ -222,7 +222,7 @@
 (define (((%== x y) sk) fk)
   (if (ident? x y)
       (sk fk)
-      (fk (neg-formula (reason-formula 'ident? x y)))))
+      (fk (neg-formula (app-expr ident? x y)))))
 
 (define %/==
   (make-negation %==))
