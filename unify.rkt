@@ -713,6 +713,10 @@
           [(not (= (length simple-subformulas) 2)) (error "= must have exactly two subformulas")]
           [(equal? (first simple-subformulas) (second simple-subformulas)) true-formula]
           [(andmap (negate config-expr?) simple-subformulas) false-formula]
+          [(equal? (first simple-subformulas) #t) (second simple-subformulas)]
+          [(equal? (first simple-subformulas) #f) (neg-formula (second simple-subformulas))]
+          [(equal? (second simple-subformulas) #t) (first simple-subformulas)]
+          [(equal? (second simple-subformulas) #f) (neg-formula (first simple-subformulas))]
           [else (make-reason-formula '= simple-subformulas)])]
         [else (make-reason-formula (reason-formula-op reason) simple-subformulas)]))))
 (define (reason->string var-mapping reason)
@@ -727,7 +731,7 @@
           (foldl (λ (sfs res) (format " ~a~a" sfs res)) "" sub-formula-strs)))
 
 (define (print-failure-reason var-mapping reason)
-  (printf "~a\n" (reason->string var-mapping reason #;(simplify-reason reason)))
+  (printf "~a\n" (reason->string var-mapping (simplify-reason reason)))
   (print-hrule))
 
 ; config vars
