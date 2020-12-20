@@ -176,17 +176,17 @@
            (logic-var-val* x)))]
     ))
 
-(define ((make-binary-arithmetic-relation f) x y)
+(define-syntax-rule (binary-arithmetic-relation f x y)
   (%and (%is #t (number? x))
         (%is #t (number? y))
         (%is #t (f x y))))
 
-(define %=:= (make-binary-arithmetic-relation =))
-(define %> (make-binary-arithmetic-relation >))
-(define %>= (make-binary-arithmetic-relation >=))
-(define %< (make-binary-arithmetic-relation <))
-(define %<= (make-binary-arithmetic-relation <=))
-(define %=/= (make-binary-arithmetic-relation (compose not =)))
+(define-syntax-rule (%=:= x y) (binary-arithmetic-relation = x y))
+(define-syntax-rule (%> x y) (binary-arithmetic-relation > x y))
+(define-syntax-rule (%>= x y) (binary-arithmetic-relation >= x y))
+(define-syntax-rule (%< x y) (binary-arithmetic-relation < x y))
+(define-syntax-rule (%<= x y) (binary-arithmetic-relation <= x y))
+(define-syntax-rule (%=/= x y) (binary-arithmetic-relation (compose not =) x y))
 
 (define (((%constant x) sk) fk)
   (if (constant? x)
@@ -426,7 +426,7 @@
 
 ; XXX Add contracts in theses macro expansions
 (provide %and %assert! %assert-after! %cut-delimiter %free-vars %is %let
-         %or %rel %which %find-all ! define-config-var)
+         %or %rel %which %find-all ! define-config-var %< %<= %=/= %=:= %> %>=)
 (provide/contract
  [goal/c contract?]
  [logic-var? (any/c . -> . boolean?)]
@@ -439,14 +439,8 @@
  [answer? (any/c . -> . boolean?)]
  [%/= (unifiable? unifiable? . -> . goal/c)]
  [%/== (unifiable? unifiable? . -> . goal/c)]
- [%< (unifiable? unifiable? . -> . goal/c)]
- [%<= (unifiable? unifiable? . -> . goal/c)]
  [%= (unifiable? unifiable? . -> . goal/c)]
- [%=/= (unifiable? unifiable? . -> . goal/c)]
- [%=:= (unifiable? unifiable? . -> . goal/c)]
  [%== (unifiable? unifiable? . -> . goal/c)]
- [%> (unifiable? unifiable? . -> . goal/c)]
- [%>= (unifiable? unifiable? . -> . goal/c)]
  [%andmap (unifiable? unifiable? unifiable? ... . -> . goal/c)]
  [%append (unifiable? unifiable? unifiable? . -> . goal/c)]
  [%apply (unifiable? unifiable? . -> . goal/c)]
