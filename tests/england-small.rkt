@@ -15,7 +15,6 @@
 (define-config-var mystery-man 'charles)
 (define-config-var mystery-woman 'anne)
 (define-config-var mystery-list (list 1 2 3))
-(define-config-var mystery-bool #f)
 
 (define %male
   (%rel ()
@@ -45,8 +44,7 @@
   (%rel (d a)
     ((d a) (%nth-descendant-of d a generations))))
 
-
-
-(%which (x) (%is x (if mystery-bool generations (- generations 1))) (%is x generations))
+(define-config-var mystery-bool #f)
 (define-config-var n 2)
+(%which (x) (%is x (if mystery-bool n (- n 1))) (%is x n))
 (%which (x) (%is x n) (%<= x (/ n 2)))
