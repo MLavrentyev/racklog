@@ -325,7 +325,7 @@
         (%= s (cons (_) (_)))))
 
 (define *more-fk* (box (λ (d) (error '%more "No active %which"))))
-(define *prev-soln* (box (void)))
+(define *prev-success-reasons* (box empty))
 
 (define-syntax %which
   (syntax-rules ()
@@ -335,18 +335,19 @@
        (reset-choice-points)
        (%let (v ...)
           (((logic-var-val* g)
-            (lambda (fk)
+            (lambda (fk reason)
               (let* ([var-mapping (list (cons 'v (logic-var-val* v)) ...)]
                      [var-val-mapping (list (cons 'v (expr-value (logic-var-val* v))) ...)])
                 (print-search-tree var-mapping)
                 (set-box! *more-fk* fk)
-                (set-box! *prev-soln* (reason-formula 'and (reason-formula '= v (logic-var-val* v)) ...))
+                (set-box! *prev-success-reasons* (cons reason (unbox *prev-success-reasons*)))
                 (abort-to-racklog-prompt var-val-mapping))))
             (lambda (reason)
               (let ([var-mapping (list (cons 'v (logic-var-val* v)) ...)])
                 (print-search-tree var-mapping)
                 (print-failure-reason var-mapping reason)
                 (set-box! *more-fk* #f)
+                (set-box! *prev-success-reasons* empty)
                 (abort-to-racklog-prompt #f))))))]
     [(%which (v ...) g ...)
      (%which (v ...) (%and g ...))]))
@@ -354,7 +355,7 @@
 (define (%more)
   (with-racklog-prompt
     (if (unbox *more-fk*)
-        ((unbox *more-fk*) (neg-formula (unbox *prev-soln*)))
+        ((unbox *more-fk*) (neg-formula (and-reasons (unbox *prev-success-reasons*))))
         #f)))
 
 (define-syntax %find-all
