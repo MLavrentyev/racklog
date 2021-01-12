@@ -191,25 +191,25 @@
 (define-syntax-rule (%<= x y) (binary-arithmetic-relation <= x y))
 (define-syntax-rule (%=/= x y) (binary-arithmetic-relation (compose not =) x y))
 
-(define (((%constant x) sk) fk)
+(define (((%constant x) sk) fk sreas)
   (if (constant? x)
-      (sk fk)
+      (sk fk (reason-formula 'and sreas (app-expr constant? x)))
       (fk (neg-formula (reason-formula 'constant? x)))))
 
-(define (((%compound x) sk) fk)
+(define (((%compound x) sk) fk sreas)
   (if (is-compound? x)
-      (sk fk)
+      (sk fk (reason-formula 'and sreas (app-expr is-compound? x)))
       (fk (neg-formula (reason-formula 'is-compound? x)))))
 
-(define (((%var x) sk) fk)
+(define (((%var x) sk) fk sreas)
   (if (var? x)
-      (sk fk)
+      (sk fk (reason-formula 'and sreas (app-expr var? x)))
       (fk (neg-formula (reason-formula 'var? x)))))
 
-(define (((%nonvar x) sk) fk)
+(define (((%nonvar x) sk) fk sreas)
   (if (var? x)
       (fk (reason-formula 'var? x))
-      (sk fk)))
+      (sk fk (reason-formula 'and sreas (neg-formula (app-expr var? x))))))
 
 (define ((make-negation p) . args)
   ;basically inlined cut-fail
