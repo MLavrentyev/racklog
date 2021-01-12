@@ -487,7 +487,7 @@
      [(? atom? y) (eqv? x y)])]))
 
 (define ((unify t1 t2) sk)
-  (lambda (fk)
+  (lambda (fk sreas)
     ; note: t1, t2 may be config-exprs
     (define (unify1 t1 t2 next)
       (define t1-v (expr-value t1))
@@ -565,7 +565,7 @@
             [(and (atom? t1-v) (atom? t2-v))
              (if (equal? t1-v t2-v) (next) (fk (neg-formula (reason-formula '= t1 t2))))]
             [else (fk (reason-formula 'todo-unify-else))])) ; TODO: reason here (it's because of constructor mismatch)
-    (unify1 t1 t2 (λ () (sk fk)))))
+    (unify1 t1 t2 (λ (sreas2) (sk fk (reason-formula 'and sreas sreas2))))))
 
 (define-syntax-rule (or* x f ...)
   (or (f x) ...))
