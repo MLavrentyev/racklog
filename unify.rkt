@@ -515,10 +515,10 @@
 
             [(and (pair? t1-v) (pair? t2-v))
              (unify1 (app-expr car t1) (app-expr car t2)
-                     (λ () (unify1 (app-expr cdr t1) (app-expr cdr t2) next)))]
+                     (λ (sreas2) (unify1 (app-expr cdr t1) (app-expr cdr t2) next)))] ; TODO: figure out how sreas2 ties in?
             [(and (mpair? t1-v) (mpair? t2-v))
              (unify1 (app-expr mcar t1) (app-expr mcar t2)
-                     (λ (sreas2) (unify1 (app-expr mcdr t1) (app-expr mcdr t2) next)))]
+                     (λ (sreas2) (unify1 (app-expr mcdr t1) (app-expr mcdr t2) next)))] ; TODO: figure out how sreas2 ties in?
             [(and (box? t1-v) (box? t2-v))
              (unify1 (app-expr unbox t1) (app-expr unbox t2) next)]
             [(and (vector? t1-v) (vector? t2-v))

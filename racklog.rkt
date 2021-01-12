@@ -243,7 +243,7 @@
   (((%= (copy s) c) sk) fk))
 
 (define (%not g)
-  (%if-then-else g %fail %true)) ; TODO: may need to change this to %fail-with-reason
+  (%if-then-else g %fail-with-reason %true))
 
 (define %empty-rel
   (relation '()))
