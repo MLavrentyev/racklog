@@ -9,3 +9,6 @@ compiled/
 .DS_Store
 *.bak
 TAGS
+
+# editor settings
+.vscode/
