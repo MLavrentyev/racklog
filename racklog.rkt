@@ -87,7 +87,7 @@
                            (__sk2 __fk sreas2)))])
            (syntax-parameterize
                ([! (make-rename-transformer #'this-!)])
-             (((logic-var-val* g) __sk) __fk))))))))
+             (((logic-var-val* g) __sk) __fk sreas))))))))
 
 (struct relation (clauses)
   #:property prop:procedure
