@@ -112,11 +112,14 @@
                    subgoal ...))))
        ...)))))
 
-(define ((%fail sk) fk)
+(define ((%fail sk) fk sreas)
   (fk (reason-formula 'false empty)))
 
-(define ((%true sk) fk)
-  (sk fk))
+(define ((%fail-with-reason sk) fk sreas)
+  (fk sreas))
+
+(define ((%true sk) fk sreas)
+  (sk fk sreas))
 
 (define-for-syntax orig-insp (variable-reference->module-declaration-inspector
                               (#%variable-reference)))
