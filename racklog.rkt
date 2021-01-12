@@ -94,10 +94,10 @@
   (lambda (rel . __fmls)
     (%cut-delimiter
       (lambda (__sk)
-        (lambda (__fk)
+        (lambda (__fk sreas)
           (for ([clause (in-list (relation-clauses rel))])
             (let/racklog-fk fail-clause '%rel
-              (((clause __fmls !) __sk) fail-clause)))
+              (((clause __fmls !) __sk) fail-clause sreas)))
           (__fk (make-reason-formula 'and (get-child-reasons curr-choice-point))))))))
 
 (define-syntax %rel
@@ -421,10 +421,10 @@
   (define id (config-expr 'id val empty (λ () val))))
 
 (define fk? (any/c . -> . none/c))
-(define sk? (fk? . -> . none/c))
+(define sk? (fk? any/c . -> . none/c))
 (define goal/c
   (or/c goal-with-free-vars?
-        (sk? . -> . (fk? . -> . none/c))))
+        (sk? . -> . (fk? any/c . -> . none/c))))
 (define relation/c
   (->* () () #:rest (listof unifiable?) goal/c))
 
