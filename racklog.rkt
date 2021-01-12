@@ -81,10 +81,10 @@
   (syntax-rules ()
     ((%cut-delimiter g)
      (lambda (__sk)
-       (lambda (__fk)
+       (lambda (__fk sreas)
          (let ([this-! (lambda (__sk2)
-                         (lambda (__fk2)
-                           (__sk2 __fk)))])
+                         (lambda (__fk2 sreas2)
+                           (__sk2 __fk sreas2)))])
            (syntax-parameterize
                ([! (make-rename-transformer #'this-!)])
              (((logic-var-val* g) __sk) __fk))))))))
