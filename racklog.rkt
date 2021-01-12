@@ -342,16 +342,18 @@
               (let* ([var-mapping (list (cons 'v (logic-var-val* v)) ...)]
                      [var-val-mapping (list (cons 'v (expr-value (logic-var-val* v))) ...)])
                 (print-search-tree var-mapping)
+                (print-reason var-mapping reason)
                 (set-box! *more-fk* fk)
                 (set-box! *prev-success-reasons* (cons reason (unbox *prev-success-reasons*)))
                 (abort-to-racklog-prompt var-val-mapping))))
             (lambda (reason)
               (let ([var-mapping (list (cons 'v (logic-var-val* v)) ...)])
                 (print-search-tree var-mapping)
-                (print-failure-reason var-mapping reason)
+                (print-reason var-mapping reason)
                 (set-box! *more-fk* #f)
                 (set-box! *prev-success-reasons* empty)
-                (abort-to-racklog-prompt #f))))))]
+                (abort-to-racklog-prompt #f)))
+            true-formula)))]
     [(%which (v ...) g ...)
      (%which (v ...) (%and g ...))]))
 

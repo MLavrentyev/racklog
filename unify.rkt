@@ -746,7 +746,7 @@
           (reason-formula-op reason)
           (foldl (λ (sfs res) (format " ~a~a" sfs res)) "" sub-formula-strs)))
 
-(define (print-failure-reason var-mapping reason)
+(define (print-reason var-mapping reason)
   (printf "~a\n" (reason->string var-mapping (simplify-reason reason)))
   (print-hrule))
 
