@@ -24,9 +24,9 @@
   (syntax-rules ()
     ((%or g ...)
      (lambda (__sk)
-       (lambda (__fk)
+       (lambda (__fk sreas)
          (let/racklog-fk __fk '%or
-           (((logic-var-val* g) __sk) __fk)) ...
+           (((logic-var-val* g) __sk) __fk sreas)) ...
          (__fk (make-reason-formula 'and (get-child-reasons curr-choice-point))))))))
 
 (define-syntax %and
@@ -35,10 +35,10 @@
      %true)
     ((%and g gs ...)
      (lambda (__sk)
-       (lambda (__fk)
+       (lambda (__fk sreas)
          (((logic-var-val* g)
            ((%and gs ...) __sk))
-          __fk))))))
+          __fk sreas))))))
 
 (define ((%apply pred args) sk)
   (lambda (fk)
@@ -243,7 +243,7 @@
   (((%= (copy s) c) sk) fk))
 
 (define (%not g)
-  (%if-then-else g %fail %true))
+  (%if-then-else g %fail %true)) ; TODO: may need to change this to %fail-with-reason
 
 (define %empty-rel
   (relation '()))
