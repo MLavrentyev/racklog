@@ -132,8 +132,8 @@
                         orig-insp)])
        (syntax/loc stx
          (lambda (__sk)
-           (lambda (__fk)
-             (((%= v (%is/fk fe __fk)) __sk) __fk)))))]))
+           (lambda (__fk sreas)
+             (((%= v (%is/fk fe __fk)) __sk) __fk sreas)))))]))
 (define-syntax (%is/fk stx)
   (kernel-syntax-case stx #f
     [(_ (#%plain-lambda fmls e ...) fk) ; TODO: deal with these other cases
@@ -214,10 +214,10 @@
 (define ((make-negation p) . args)
   ;basically inlined cut-fail
   (lambda (sk)
-    (lambda (fk)
+    (lambda (fk sreas)
       (((apply p args)
-        (lambda (fk2) (fk (reason-formula 'make-negation)))) ; TODO: figure this out
-       (lambda () (sk fk))))))
+        (lambda (fk2 sreas2) (fk sreas2))) ; failed because (apply p args) succeeded
+       (lambda (freas) (sk fk freas)))))) ; succeeds because (apply p args) failed
 
 (define %/=
   (make-negation %=))
