@@ -492,14 +492,14 @@
     (define (unify1 t1 t2 next)
       (define t1-v (expr-value t1))
       (define t2-v (expr-value t2))
-      (cond [(eqv? t1-v t2-v) (next)]
+      (cond [(eqv? t1-v t2-v) (next (reason-formula '= t1 t2))]
             [(logic-var? t1-v)
              (cond [(unbound-logic-var? t1-v)
                     (cond [(occurs-in? t1-v t2-v)
                            (fk (reason-formula 'occurs-in? t1 t2))]
                           [else
                            (let/logic-var ([t1-v t2])
-                             (next))])]
+                             (next true-formula))])] ; true since unbound
                    [(frozen-logic-var? t1-v)
                     (cond [(logic-var? t2-v)
                            (cond [(unbound-logic-var? t2-v)
@@ -518,34 +518,42 @@
                      (λ () (unify1 (app-expr cdr t1) (app-expr cdr t2) next)))]
             [(and (mpair? t1-v) (mpair? t2-v))
              (unify1 (app-expr mcar t1) (app-expr mcar t2)
-                     (λ () (unify1 (app-expr mcdr t1) (app-expr mcdr t2) next)))]
+                     (λ (sreas2) (unify1 (app-expr mcdr t1) (app-expr mcdr t2) next)))]
             [(and (box? t1-v) (box? t2-v))
              (unify1 (app-expr unbox t1) (app-expr unbox t2) next)]
             [(and (vector? t1-v) (vector? t2-v))
              (if (= (vector-length t1-v)
                     (vector-length t2-v))
                  (let loop ([v1s (app-expr sequence->stream (app-expr in-vector t1))]
-                            [v2s (app-expr sequence->stream (app-expr in-vector t2))])
+                            [v2s (app-expr sequence->stream (app-expr in-vector t2))]
+                            [sreas (reason-formula '= (app-expr vector-length t1) (app-expr vector-length t2))])
                    (if (expr-value (app-expr stream-empty? v1s))
-                       (next)
+                       (next sreas)
                        (unify1 (app-expr stream-first v1s)
                                (app-expr stream-first v2s)
-                               (λ () (loop (app-expr stream-rest v1s)
-                                           (app-expr stream-rest v2s))))))
+                               (λ (sreas2) (loop (app-expr stream-rest v1s)
+                                                 (app-expr stream-rest v2s)
+                                                 (reason-formula 'and sreas sreas2))))))
                  (fk (neg-formula (reason-formula '= (reason-formula 'vector-length t1)
                                                      (reason-formula 'vector-length t2)))))]
             [(and (hash? t1-v) (hash? t2-v))
              (if (and (same-hash-kind? t1-v t2-v)
                       (= (hash-count t1-v) (hash-count t2-v)))
-                 (let loop ([xs (app-expr sequence->stream (app-expr in-hash-pairs t1))])
+                 (let loop ([xs (app-expr sequence->stream (app-expr in-hash-pairs t1))]
+                            [sreas (reason-formula 'and (app-expr same-hash-kind? t1 t2)
+                                                        (reason-formula '= (app-expr hash-count t1) (app-expr hash-count t2)))])
                    (if (expr-value (app-expr stream-empty? xs))
-                       (next)
+                       (next sreas)
                        (let ([xk (app-expr car (app-expr stream-first xs))]
                              [xv (app-expr cdr (app-expr stream-first xs))])
                          (if (expr-value (app-expr hash-has-key? t2 xk))
                              (unify1 xv
                                      (app-expr hash-ref t2 xk)
-                                     (λ () (loop (app-expr stream-rest xs))))
+                                     (λ (sreas2) (loop (app-expr stream-rest xs)
+                                                       (reason-formula 'and sreas
+                                                                            sreas2
+                                                                            (app-expr hash-has-key? t1 xk)
+                                                                            (app-expr hash-has-key? t2 xk)))))
                              (fk (reason-formula 'and (reason-formula 'hash-has-key? t1 xk)
                                                       (neg-formula (reason-formula 'hash-has-key? t2 xk))))))))
                  (fk (reason-formula 'or (neg-formula (reason-formula 'same-hash-kind? t1 t2))
@@ -554,16 +562,20 @@
             [(and (compound-struct? t1-v) (compound-struct? t2-v))
              (if (compound-struct-same? t1-v t2-v)
                  (let loop ([e1s (app-expr sequence->stream (app-expr in-compound-struct t1))]
-                            [e2s (app-expr sequence->stream (app-expr in-compound-struct t2))])
+                            [e2s (app-expr sequence->stream (app-expr in-compound-struct t2))]
+                            [sreas (app-expr compound-struct-same? t1 t2)])
                    (if (expr-value (app-expr stream-empty? e1s))
-                       (next)
+                       (next sreas)
                        (unify1 (app-expr stream-first e1s)
                                (app-expr stream-first e2s)
-                               (λ () (loop (app-expr stream-rest e1s)
-                                           (app-expr stream-rest e2s))))))
+                               (λ (sreas2) (loop (app-expr stream-rest e1s)
+                                                 (app-expr stream-rest e2s)
+                                                 (reason-formula 'and sreas sreas2))))))
                  (fk (neg-formula (reason-formula 'compound-struct-same? t1 t2))))]
             [(and (atom? t1-v) (atom? t2-v))
-             (if (equal? t1-v t2-v) (next) (fk (neg-formula (reason-formula '= t1 t2))))]
+             (if (equal? t1-v t2-v)
+                 (next (reason-formula '= t1 t2))
+                 (fk (neg-formula (reason-formula '= t1 t2))))]
             [else (fk (reason-formula 'todo-unify-else))])) ; TODO: reason here (it's because of constructor mismatch)
     (unify1 t1 t2 (λ (sreas2) (sk fk (reason-formula 'and sreas sreas2))))))
 
