@@ -18,7 +18,7 @@
 
 (define %male
   (%rel ()
-    (('philip)) ((mystery-man))))
+    (('philip)) ))
 
 (define %female
   (%rel ()
@@ -46,13 +46,16 @@
 
 (define-config-var mystery-bool #f)
 (define-config-var n 2)
+(define-config-var m 2)
 
 ; Expressions
-; (%which (x) (%is x (if mystery-bool n (- n 1))) (%is x n))
-; (%which (x) (%is x n) (%<= x (/ n 2)))
+(%which (x) (%is x (if mystery-bool n (- n 1))) (%is x n))
+(%which (x) (%is x n) (%<= x (/ n 2)))
 
 ; Negation
-; (%which (x) (%is x n) (%not (%is x n)))
+(%which (x) (%is x n) (%not (%is x m)))
+(%which (x y) (%male x) (%father-of x y) (%/= y 'charles))
+(%which (x y) (%father-of x y) (%father-of y x))
 
 ; Recursion
 (%which (d a) (%exact-gen-descendant-of d a))
