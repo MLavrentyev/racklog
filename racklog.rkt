@@ -217,7 +217,8 @@
     (lambda (fk sreas)
       (((apply p args)
         (lambda (fk2 sreas2) (fk sreas2))) ; failed because (apply p args) succeeded
-       (lambda (freas) (sk fk freas)))))) ; succeeds because (apply p args) failed
+       (lambda (freas) (sk fk freas)) ; succeeds because (apply p args) failed
+       sreas))))
 
 (define %/=
   (make-negation %=))
