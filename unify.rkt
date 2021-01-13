@@ -705,14 +705,14 @@
       (define simple-subformulas (map simplify-reason (reason-formula-args reason)))
       (match (reason-formula-op reason)
         ['and
-         (let ([non-true-sfs (filter (negate is-true-formula?) simple-subformulas)])
+         (let ([non-true-sfs (remove-duplicates (filter (negate is-true-formula?) simple-subformulas))])
            (cond
              [(empty? non-true-sfs) true-formula]
              [(= 1 (length non-true-sfs)) (first non-true-sfs)]
              [(ormap is-false-formula? non-true-sfs) false-formula]
              [else (make-reason-formula 'and non-true-sfs)]))]
         ['or
-         (let ([non-false-sfs (filter (negate is-false-formula?) simple-subformulas)])
+         (let ([non-false-sfs (remove-duplicates (filter (negate is-false-formula?) simple-subformulas))])
            (cond
              [(empty? non-false-sfs) false-formula]
              [(= 1 (length non-false-sfs)) (first non-false-sfs)]
