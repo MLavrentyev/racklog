@@ -24,9 +24,9 @@
   (syntax-rules ()
     ((%or g ...)
      (lambda (__sk)
-       (lambda (__fk)
+       (lambda (__fk sreas)
          (let/racklog-fk __fk '%or
-           (((logic-var-val* g) __sk) __fk)) ...
+           (((logic-var-val* g) __sk) __fk sreas)) ...
          (__fk (make-reason-formula 'and (get-child-reasons curr-choice-point))))))))
 
 (define-syntax %and
@@ -35,10 +35,10 @@
      %true)
     ((%and g gs ...)
      (lambda (__sk)
-       (lambda (__fk)
+       (lambda (__fk sreas)
          (((logic-var-val* g)
            ((%and gs ...) __sk))
-          __fk))))))
+          __fk sreas))))))
 
 (define ((%apply pred args) sk)
   (lambda (fk)
@@ -81,23 +81,23 @@
   (syntax-rules ()
     ((%cut-delimiter g)
      (lambda (__sk)
-       (lambda (__fk)
+       (lambda (__fk sreas)
          (let ([this-! (lambda (__sk2)
-                         (lambda (__fk2)
-                           (__sk2 __fk)))])
+                         (lambda (__fk2 sreas2)
+                           (__sk2 __fk sreas2)))])
            (syntax-parameterize
                ([! (make-rename-transformer #'this-!)])
-             (((logic-var-val* g) __sk) __fk))))))))
+             (((logic-var-val* g) __sk) __fk sreas))))))))
 
 (struct relation (clauses)
   #:property prop:procedure
   (lambda (rel . __fmls)
     (%cut-delimiter
       (lambda (__sk)
-        (lambda (__fk)
+        (lambda (__fk sreas)
           (for ([clause (in-list (relation-clauses rel))])
             (let/racklog-fk fail-clause '%rel
-              (((clause __fmls !) __sk) fail-clause)))
+              (((clause __fmls !) __sk) fail-clause sreas)))
           (__fk (make-reason-formula 'and (get-child-reasons curr-choice-point))))))))
 
 (define-syntax %rel
@@ -112,11 +112,14 @@
                    subgoal ...))))
        ...)))))
 
-(define ((%fail sk) fk)
+(define ((%fail sk) fk sreas)
   (fk (reason-formula 'false empty)))
 
-(define ((%true sk) fk)
-  (sk fk))
+(define ((%fail-with-reason sk) fk sreas)
+  (fk sreas))
+
+(define ((%true sk) fk sreas)
+  (sk fk sreas))
 
 (define-for-syntax orig-insp (variable-reference->module-declaration-inspector
                               (#%variable-reference)))
@@ -129,8 +132,8 @@
                         orig-insp)])
        (syntax/loc stx
          (lambda (__sk)
-           (lambda (__fk)
-             (((%= v (%is/fk fe __fk)) __sk) __fk)))))]))
+           (lambda (__fk sreas)
+             (((%= v (%is/fk fe __fk)) __sk) __fk sreas)))))]))
 (define-syntax (%is/fk stx)
   (kernel-syntax-case stx #f
     [(_ (#%plain-lambda fmls e ...) fk) ; TODO: deal with these other cases
@@ -188,33 +191,33 @@
 (define-syntax-rule (%<= x y) (binary-arithmetic-relation <= x y))
 (define-syntax-rule (%=/= x y) (binary-arithmetic-relation (compose not =) x y))
 
-(define (((%constant x) sk) fk)
+(define (((%constant x) sk) fk sreas)
   (if (constant? x)
-      (sk fk)
+      (sk fk (reason-formula 'and sreas (app-expr constant? x)))
       (fk (neg-formula (reason-formula 'constant? x)))))
 
-(define (((%compound x) sk) fk)
+(define (((%compound x) sk) fk sreas)
   (if (is-compound? x)
-      (sk fk)
+      (sk fk (reason-formula 'and sreas (app-expr is-compound? x)))
       (fk (neg-formula (reason-formula 'is-compound? x)))))
 
-(define (((%var x) sk) fk)
+(define (((%var x) sk) fk sreas)
   (if (var? x)
-      (sk fk)
+      (sk fk (reason-formula 'and sreas (app-expr var? x)))
       (fk (neg-formula (reason-formula 'var? x)))))
 
-(define (((%nonvar x) sk) fk)
+(define (((%nonvar x) sk) fk sreas)
   (if (var? x)
       (fk (reason-formula 'var? x))
-      (sk fk)))
+      (sk fk (reason-formula 'and sreas (neg-formula (app-expr var? x))))))
 
 (define ((make-negation p) . args)
   ;basically inlined cut-fail
   (lambda (sk)
-    (lambda (fk)
+    (lambda (fk sreas)
       (((apply p args)
-        (lambda (fk2) (fk (reason-formula 'make-negation)))) ; TODO: figure this out
-       (lambda () (sk fk))))))
+        (lambda (fk2 sreas2) (fk sreas2))) ; failed because (apply p args) succeeded
+       (lambda (freas) (sk fk freas)))))) ; succeeds because (apply p args) failed
 
 (define %/=
   (make-negation %=))
@@ -240,7 +243,7 @@
   (((%= (copy s) c) sk) fk))
 
 (define (%not g)
-  (%if-then-else g %fail %true))
+  (%if-then-else g %fail-with-reason %true))
 
 (define %empty-rel
   (relation '()))
@@ -325,7 +328,7 @@
         (%= s (cons (_) (_)))))
 
 (define *more-fk* (box (λ (d) (error '%more "No active %which"))))
-(define *prev-soln* (box (void)))
+(define *prev-success-reasons* (box empty))
 
 (define-syntax %which
   (syntax-rules ()
@@ -335,26 +338,29 @@
        (reset-choice-points)
        (%let (v ...)
           (((logic-var-val* g)
-            (lambda (fk)
+            (lambda (fk reason)
               (let* ([var-mapping (list (cons 'v (logic-var-val* v)) ...)]
                      [var-val-mapping (list (cons 'v (expr-value (logic-var-val* v))) ...)])
                 (print-search-tree var-mapping)
+                (print-reason var-mapping reason)
                 (set-box! *more-fk* fk)
-                (set-box! *prev-soln* (reason-formula 'and (reason-formula '= v (logic-var-val* v)) ...))
+                (set-box! *prev-success-reasons* (cons reason (unbox *prev-success-reasons*)))
                 (abort-to-racklog-prompt var-val-mapping))))
             (lambda (reason)
               (let ([var-mapping (list (cons 'v (logic-var-val* v)) ...)])
                 (print-search-tree var-mapping)
-                (print-failure-reason var-mapping reason)
+                (print-reason var-mapping reason)
                 (set-box! *more-fk* #f)
-                (abort-to-racklog-prompt #f))))))]
+                (set-box! *prev-success-reasons* empty)
+                (abort-to-racklog-prompt #f)))
+            true-formula)))]
     [(%which (v ...) g ...)
      (%which (v ...) (%and g ...))]))
 
 (define (%more)
   (with-racklog-prompt
     (if (unbox *more-fk*)
-        ((unbox *more-fk*) (neg-formula (unbox *prev-soln*)))
+        ((unbox *more-fk*) (neg-formula (and-reasons (unbox *prev-success-reasons*))))
         #f)))
 
 (define-syntax %find-all
@@ -417,10 +423,10 @@
   (define id (config-expr 'id val empty (λ () val))))
 
 (define fk? (any/c . -> . none/c))
-(define sk? (fk? . -> . none/c))
+(define sk? (fk? any/c . -> . none/c))
 (define goal/c
   (or/c goal-with-free-vars?
-        (sk? . -> . (fk? . -> . none/c))))
+        (sk? . -> . (fk? any/c . -> . none/c))))
 (define relation/c
   (->* () () #:rest (listof unifiable?) goal/c))
 

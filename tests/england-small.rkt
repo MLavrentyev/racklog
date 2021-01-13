@@ -26,7 +26,7 @@
 
 (define %father-of
   (%rel ()
-   (('philip 'charles))))
+   (('philip mystery-man))))
 
 (define %child-of
   (%rel (c p)
@@ -37,14 +37,22 @@
 
 (define %nth-descendant-of
   (%rel (d a n n-1 pd)
-    ((a a 0))       ; TODO: change to check/fail for <= 0
+    ((a a 0))
     ((d a n) (%is n-1 (- n 1)) (%father-of pd d) (%nth-descendant-of pd a n-1))))
 
-(define %recent-descendant-of
+(define %exact-gen-descendant-of
   (%rel (d a)
     ((d a) (%nth-descendant-of d a generations))))
 
 (define-config-var mystery-bool #f)
 (define-config-var n 2)
-(%which (x) (%is x (if mystery-bool n (- n 1))) (%is x n))
-(%which (x) (%is x n) (%<= x (/ n 2)))
+
+; Expressions
+; (%which (x) (%is x (if mystery-bool n (- n 1))) (%is x n))
+; (%which (x) (%is x n) (%<= x (/ n 2)))
+
+; Negation
+; (%which (x) (%is x n) (%not (%is x n)))
+
+; Recursion
+(%which (d a) (%exact-gen-descendant-of d a))
