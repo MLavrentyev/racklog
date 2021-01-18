@@ -695,7 +695,7 @@
 (define true-formula (make-reason-formula 'true empty))
 (define (is-false-formula? formula) (equal? formula false-formula))
 (define (is-true-formula? formula) (equal? formula true-formula))
-(define (is-negated-formula? formula) (equal? (reason-formula-op 'not)))
+(define (is-negated-formula? formula) (and (reason-formula? formula) (equal? (reason-formula-op formula) 'not)))
 (define (and-reasons r-list)
   (make-reason-formula 'and r-list))
 (define (or-reasons r-list)
