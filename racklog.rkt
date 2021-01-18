@@ -29,6 +29,15 @@
            (((logic-var-val* g) __sk) __fk sreas)) ...
          (__fk (make-reason-formula 'and (get-child-reasons curr-choice-point))))))))
 
+(define-syntax %or-with-reason
+  (syntax-rules ()
+    ((%or freas g ...)
+     (lambda (__sk)
+       (lambda (__fk sreas)
+         (let/racklog-fk __fk '%or
+           (((logic-var-val* g) __sk) __fk sreas)) ...
+         (__fk freas))))))
+
 (define-syntax %and
   (syntax-rules ()
     ((%and)
@@ -397,7 +406,7 @@
 
 (define (%member x y)
   (%let (xs z zs)
-        (%or
+        (%or-with-reason (neg-formula (reason-formula 'member x y))
          (%= y (cons x xs))
          (%and (%= y (cons z zs))
                (%member x zs)))))
