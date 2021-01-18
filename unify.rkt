@@ -695,6 +695,7 @@
 (define true-formula (make-reason-formula 'true empty))
 (define (is-false-formula? formula) (equal? formula false-formula))
 (define (is-true-formula? formula) (equal? formula true-formula))
+(define (is-negated-formula? formula) (equal? (reason-formula-op 'not)))
 (define (and-reasons r-list)
   (make-reason-formula 'and r-list))
 (define (or-reasons r-list)
@@ -705,20 +706,28 @@
   (map choice-point-reason (choice-point-children chp)))
 (define (neg-formula reason)
   (reason-formula 'not reason))
-(define (simplify-reason reason)
+(define (flatten-subforms op sfs)
+  (foldr
+    (λ (sf r)
+      (if (and (reason-formula? sf) (equal? (reason-formula-op sf) op))
+          (append (reason-formula-args sf) r)
+          (cons sf r)))
+    empty
+    sfs))
+(define (simplify-reason reason) ; TODO: flatten and/ors, eliminate nested nots
   (if (not (reason-formula? reason)) reason
     (let ()
       (define simple-subformulas (map simplify-reason (reason-formula-args reason)))
       (match (reason-formula-op reason)
         ['and
-         (let ([non-true-sfs (remove-duplicates (filter (negate is-true-formula?) simple-subformulas))])
+         (let ([non-true-sfs (remove-duplicates (filter (negate is-true-formula?) (flatten-subforms 'and simple-subformulas)))])
            (cond
              [(empty? non-true-sfs) true-formula]
              [(= 1 (length non-true-sfs)) (first non-true-sfs)]
              [(ormap is-false-formula? non-true-sfs) false-formula]
              [else (make-reason-formula 'and non-true-sfs)]))]
         ['or
-         (let ([non-false-sfs (remove-duplicates (filter (negate is-false-formula?) simple-subformulas))])
+         (let ([non-false-sfs (remove-duplicates (filter (negate is-false-formula?) (flatten-subforms 'or simple-subformulas)))])
            (cond
              [(empty? non-false-sfs) false-formula]
              [(= 1 (length non-false-sfs)) (first non-false-sfs)]
@@ -729,6 +738,7 @@
           [(not (= (length simple-subformulas) 1)) (error "not must have exactly one subformula")]
           [(is-true-formula? (first simple-subformulas)) false-formula]
           [(is-false-formula? (first simple-subformulas)) true-formula]
+          [(is-negated-formula? (first simple-subformulas)) (first (reason-formula-args (first simple-subformulas)))]
           [else (make-reason-formula 'not simple-subformulas)])]
         ['=
          (cond
