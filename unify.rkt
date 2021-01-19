@@ -701,7 +701,7 @@
 (define (or-reasons r-list)
   (make-reason-formula 'or r-list))
 (define (reason-formula op . args)
-  (make-reason-formula op args))
+  (make-reason-formula op (map logic-var-val* args)))
 (define (get-child-reasons chp)
   (map choice-point-reason (choice-point-children chp)))
 (define (neg-formula reason)
@@ -714,8 +714,8 @@
           (cons sf r)))
     empty
     sfs))
-(define (simplify-reason reason) ; TODO: flatten and/ors, eliminate nested nots
-  (if (not (reason-formula? reason)) reason
+(define (simplify-reason reason)
+  (if (not (reason-formula? reason)) (logic-var-val* reason)
     (let ()
       (define simple-subformulas (map simplify-reason (reason-formula-args reason)))
       (match (reason-formula-op reason)
